@@ -1,5 +1,5 @@
 import { AnimatePresence, motion } from 'framer-motion';
-import { Component, ReactNode, useEffect, useRef } from 'react';
+import { Component, lazy, ReactNode, Suspense, useEffect, useRef } from 'react';
 import { HashRouter, Navigate, Route, Routes, useLocation } from 'react-router-dom';
 import { startBridge } from './core/bridge';
 import { Celebration } from './components/Ambient';
@@ -30,6 +30,9 @@ import { SharedSlip } from './share/SharedSlip';
 import { markReady } from './splash/ready';
 import { useSession } from './store/session';
 import { useUi } from './store/ui';
+
+// loaded only when someone opens /admin, so the panel isn't part of the normal app download
+const AdminPage = lazy(() => import('./admin/AdminPage'));
 
 class ErrorBoundary extends Component<{ children: ReactNode }, { error: Error | null }> {
   state = { error: null as Error | null };
@@ -140,6 +143,7 @@ function AppRoutes() {
         <Route path="/responsible" element={<Page><Responsible /></Page>} />
         <Route path="/help" element={<Page><Help /></Page>} />
         <Route path="/s/:user/:legs" element={<Page><SharedSlip /></Page>} />
+        <Route path="/admin" element={<Page><Suspense fallback={null}><AdminPage /></Suspense></Page>} />
         <Route path="*" element={<Page><NotFound /></Page>} />
       </Routes>
     </AnimatePresence>
