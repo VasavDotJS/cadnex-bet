@@ -2,8 +2,9 @@
 import { motion } from 'framer-motion';
 import { ChevronRight, Download, LogOut, RefreshCw, ShieldCheck, Trash2 } from 'lucide-react';
 import { useCanInstall, useInstall } from '../../pwa/install';
+import { adminApi } from '../../admin/api';
 import { useSync } from '../../cloud/sync';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useBalanceStats } from '../../components/cards';
 import { press } from '../../components/motion';
@@ -54,6 +55,9 @@ export function Profile() {
   const [pwf, setPwf] = useState({ current: '', next: '' });
   const [err, setErr] = useState('');
   const canInstall = useCanInstall();
+  // only shown to admins; the panel itself is still guarded by the database and a 2FA code
+  const [isAdmin, setIsAdmin] = useState(false);
+  useEffect(() => { adminApi.whoami().then((w) => setIsAdmin(!!w.admin), () => setIsAdmin(false)); }, [user.id]);
   if (!wallet || !st) return null;
   const s = st.all;
   const code = wallet.currency;
@@ -128,6 +132,7 @@ export function Profile() {
           { label: 'Settings', to: '/settings' },
           { label: 'Responsible gaming', to: '/responsible', icon: <ShieldCheck size={17} strokeWidth={1.5} className="text-mute" /> },
           { label: 'Help and betting rules', to: '/help' },
+          ...(isAdmin ? [{ label: 'Admin panel', to: '/admin', icon: <ShieldCheck size={17} strokeWidth={1.5} className="text-up" /> }] : []),
           ...(canInstall ? [{ label: 'Install the app', on: () => void useInstall.getState().install(), icon: <Download size={17} strokeWidth={1.5} className="text-mute" /> }] : []),
         ].map((it) => it.to ? (
           <Link key={it.label} to={it.to} className="flex h-14 items-center gap-3 border-b hair px-5 text-[15px] last:border-0 hover:bg-surface2">{it.icon}<span className="flex-1">{it.label}</span><ChevronRight size={17} strokeWidth={1.5} className="text-mute" /></Link>
