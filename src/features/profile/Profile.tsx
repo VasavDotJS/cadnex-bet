@@ -1,6 +1,7 @@
 /** Profile, statistics and settings. */
 import { motion } from 'framer-motion';
-import { ChevronRight, LogOut, RefreshCw, ShieldCheck, Trash2 } from 'lucide-react';
+import { ChevronRight, Download, LogOut, RefreshCw, ShieldCheck, Trash2 } from 'lucide-react';
+import { useCanInstall, useInstall } from '../../pwa/install';
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useBalanceStats } from '../../components/cards';
@@ -36,6 +37,7 @@ export function Profile() {
   const [form, setForm] = useState({ username: user.username, email: user.email });
   const [pwf, setPwf] = useState({ current: '', next: '' });
   const [err, setErr] = useState('');
+  const canInstall = useCanInstall();
   if (!wallet || !st) return null;
   const s = st.all;
   const code = wallet.currency;
@@ -102,10 +104,11 @@ export function Profile() {
           { label: 'Settings', to: '/settings' },
           { label: 'Responsible gaming', to: '/responsible', icon: <ShieldCheck size={17} strokeWidth={1.5} className="text-mute" /> },
           { label: 'Help and betting rules', to: '/help' },
+          ...(canInstall ? [{ label: 'Install the app', on: () => void useInstall.getState().install(), icon: <Download size={17} strokeWidth={1.5} className="text-mute" /> }] : []),
         ].map((it) => it.to ? (
           <Link key={it.label} to={it.to} className="flex h-14 items-center gap-3 border-b hair px-5 text-[15px] last:border-0 hover:bg-surface2">{it.icon}<span className="flex-1">{it.label}</span><ChevronRight size={17} strokeWidth={1.5} className="text-mute" /></Link>
         ) : (
-          <button key={it.label} onClick={it.on} className="flex h-14 w-full items-center gap-3 border-b hair px-5 text-left text-[15px] last:border-0 hover:bg-surface2"><span className="flex-1">{it.label}</span><ChevronRight size={17} strokeWidth={1.5} className="text-mute" /></button>
+          <button key={it.label} onClick={it.on} className="flex h-14 w-full items-center gap-3 border-b hair px-5 text-left text-[15px] last:border-0 hover:bg-surface2">{it.icon}<span className="flex-1">{it.label}</span><ChevronRight size={17} strokeWidth={1.5} className="text-mute" /></button>
         ))}
       </section>
 

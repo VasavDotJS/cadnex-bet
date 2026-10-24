@@ -1,3 +1,5 @@
+<p align="center"><img src="public/brand/cadnex-lockup.svg" alt="CDNX · CADNEX" width="320"></p>
+
 # CADNEX (CDNX)
 ### Virtual-Money Sportsbook on Real Matches & Live Scores
 
@@ -33,6 +35,7 @@ Everything a player stakes is virtual. There are no deposits, no withdrawals and
 | **Automatic Settlement & Cash Out** | Bets settle on the real result (football on the 90-minute score). Full and partial cash out at live fair value. |
 | **Financial Integrity** | Every amount is a `BigInt` count of minor units across 56 fiat and crypto currencies, and every balance change writes an immutable ledger entry. |
 | **Responsible Gaming** | Enforced deposit, loss, stake and single-bet limits, reality checks, breaks and self-exclusion. |
+| **Installable App** | Add it to the home screen on Android, iPhone, iPad and desktop. It opens full screen, has its own icon and launch screen, and still opens with no connection. |
 | **Light Infrastructure** | One Next.js app on Vercel. Edge caching means all visitors share a handful of upstream requests. |
 
 ---
@@ -121,6 +124,7 @@ Data: live score, clock, period, goal and card timeline, team stats (where publi
 * Dark and light themes, frosted glass, ambient glow, dot-matrix scoreboards.
 * Physics-based motion with Framer Motion; respects reduced-motion settings.
 * Live-data badge showing the provider and how fresh the scores are.
+* Installable web app (PWA): manifest, Android maskable icons, iOS home-screen icon and launch screens, and a service worker that caches the app shell but never the live data.
 
 ---
 
@@ -186,7 +190,19 @@ CADNEX_FIXTURES=/path/to/fixtures npm start
 Serves ESPN-shaped JSON files (`eng.1.json`, `nba.json`, `atp.json`, `cricket.json`) instead of the network. `src/live/fixtures.ts` builds them.
 
 ### Deploying on Vercel
-Set the project's **Framework Preset** to **Next.js** (Project Settings → Build & Deployment). No environment variables are needed.
+`vercel.json` tells Vercel this is a Next.js app, so no project settings or environment variables are needed.
+
+---
+
+## Install on Your Phone
+
+Open [cadnex.vercel.app](https://cadnex.vercel.app), then:
+
+* **Android (Chrome):** tap **Install free** on the home screen banner, or open the **⋮** menu and choose **Install app**.
+* **iPhone / iPad (Safari):** tap **Share**, then **Add to Home Screen**, then **Add**.
+* **Desktop (Chrome / Edge):** click the install icon at the right of the address bar.
+
+The app shows the same steps under **Profile → Install the app**.
 
 ---
 
@@ -199,7 +215,8 @@ cadnex-bet/
 │   │   ├── feed/route.ts      # All matches, normalised
 │   │   ├── event/route.ts     # One match (settlement & detail)
 │   │   └── health/route.ts    # Feed status page
-│   ├── layout.tsx             # Fonts, theme, metadata
+│   ├── layout.tsx             # Fonts, theme, metadata, iOS app tags
+│   ├── manifest.ts            # Web app manifest (install on Android / desktop)
 │   ├── page.tsx               # Loads the client app
 │   └── globals.css            # Design tokens & utilities
 ├── src/
@@ -213,8 +230,14 @@ cadnex-bet/
 │   ├── data/                  # Competition catalogue, club ratings
 │   ├── db/                    # Dexie schema
 │   ├── lib/                   # Money, odds, currencies, crypto
+│   ├── pwa/                   # Service worker registration & install prompt
 │   ├── services/              # Auth, wallet, bets, stats, rewards
 │   └── store/                 # Zustand stores
+├── public/
+│   ├── sw.js                  # Service worker (offline app shell)
+│   ├── brand/                 # CDNX / CADNEX logo (SVG)
+│   ├── icons/                 # App icons (any + maskable)
+│   └── splash/                # iOS launch screens
 ├── next.config.mjs
 ├── tailwind.config.mjs
 ├── tsconfig.json

@@ -5,6 +5,7 @@ import { ReactNode, useMemo, useState } from 'react';
 import { Link, NavLink, useLocation } from 'react-router-dom';
 import { leagueOrder, SPORTS } from '../../data/leagues';
 import { FeedBadge } from '../../components/FeedBadge';
+import { CdnxLockup, CdnxMark } from '../../components/Brand';
 import { Crest } from '../../components/Crest';
 import { Money } from '../../components/Money';
 import { press, spring } from '../../components/motion';
@@ -24,15 +25,10 @@ export function DemoBadge({ className = '' }: { className?: string }) {
   );
 }
 
-export function Logo({ className = '' }: { className?: string }) {
+export function Logo({ className = '', lockup = false, markClass }: { className?: string; lockup?: boolean; markClass?: string }) {
   return (
-    <Link to="/" className={`inline-flex items-center gap-2 ${className}`} aria-label="CADNEX home">
-      <svg width="26" height="26" viewBox="0 0 26 26" aria-hidden>
-        <rect x="1" y="1" width="24" height="24" rx="8" fill="rgb(var(--lime))" />
-        <path d="M17.5 9.2a5.2 5.2 0 100 7.6" fill="none" stroke="rgb(var(--on-lime))" strokeWidth="2.2" strokeLinecap="round" />
-        <circle cx="17.6" cy="13" r="1.4" fill="rgb(var(--on-lime))" />
-      </svg>
-      <span className="text-[17px] font-semibold tracking-tighter2">CDNX</span>
+    <Link to="/" className={`inline-flex items-center text-ink ${className}`} aria-label="CADNEX home">
+      {lockup ? <CdnxLockup className={markClass ?? 'h-[40px]'} /> : <CdnxMark className={markClass ?? 'h-[17px]'} />}
     </Link>
   );
 }
