@@ -124,6 +124,7 @@ Data: live score, clock, period, goal and card timeline, team stats (where publi
 * Dark and light themes, frosted glass, ambient glow, dot-matrix scoreboards.
 * Physics-based motion with Framer Motion; respects reduced-motion settings.
 * Live-data badge showing the provider and how fresh the scores are.
+* Liquid launch screen: droplets spiral in, merge like liquid metal and pour into the CDNX wordmark, which locks into the exact vector logo (WebGL, with a simple fade for reduced motion).
 * Installable web app (PWA): manifest, Android maskable icons, iOS home-screen icon and launch screens, and a service worker that caches the app shell but never the live data.
 
 ---
@@ -231,6 +232,7 @@ cadnex-bet/
 │   ├── db/                    # Dexie schema
 │   ├── lib/                   # Money, odds, currencies, crypto
 │   ├── pwa/                   # Service worker registration & install prompt
+│   ├── splash/                # Liquid launch screen (WebGL)
 │   ├── services/              # Auth, wallet, bets, stats, rewards
 │   └── store/                 # Zustand stores
 ├── public/

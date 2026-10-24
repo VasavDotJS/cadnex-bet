@@ -25,6 +25,7 @@ import { LiveCentre, Sports } from './features/sports/Sports';
 import { WalletPage } from './features/wallet/Wallet';
 import { convertMinor, formatMoney } from './lib/money';
 import { startPwa } from './pwa/install';
+import { markReady } from './splash/ready';
 import { useSession } from './store/session';
 import { useUi } from './store/ui';
 
@@ -147,13 +148,10 @@ export function App() {
     startPwa();
     void useSession.getState().boot().then(() => startBridge());
   }, []);
-  if (!booted) {
-    return (
-      <div className="flex min-h-dvh items-center justify-center">
-        <motion.span className="h-3 w-3 rounded-full bg-lime" animate={{ scale: [1, 1.6, 1], opacity: [1, 0.4, 1] }} transition={{ duration: 1.2, repeat: Infinity }} aria-label="Loading" />
-      </div>
-    );
-  }
+  useEffect(() => {
+    if (booted) markReady();
+  }, [booted]);
+  if (!booted) return null; // the launch screen is showing
   return (
     <ErrorBoundary>
       <HashRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>

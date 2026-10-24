@@ -238,3 +238,67 @@ input[type='date']::-webkit-calendar-picker-indicator {
     pointer-events: none;
   }
 }
+
+/* ───────────── launch screen ───────────── */
+.cdnx-splash {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  transition: opacity 0.56s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+.cdnx-splash[data-phase='exit'] {
+  opacity: 0;
+  pointer-events: none;
+}
+.cdnx-splash-stage {
+  position: absolute;
+  inset: 0;
+  transition: transform 0.56s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.cdnx-splash[data-phase='exit'] .cdnx-splash-stage {
+  transform: scale(1.08);
+}
+.cdnx-splash-box {
+  position: absolute;
+  left: 50%;
+  top: 46%;
+  width: min(62vw, 340px);
+  transform: translate(-50%, -50%);
+}
+.cdnx-splash-glow {
+  position: absolute;
+  aspect-ratio: 1.5;
+  transform: translate(-50%, -50%);
+  opacity: 0;
+  pointer-events: none;
+  background: radial-gradient(closest-side, rgb(124 108 246 / 0.34), rgb(124 108 246 / 0.12) 45%, rgb(181 242 61 / 0.05) 65%, transparent);
+  filter: blur(8px);
+}
+.cdnx-splash-wait {
+  position: absolute;
+  left: 50%;
+  top: calc(100% + 30px);
+  width: 56px;
+  height: 2px;
+  margin-left: -28px;
+  overflow: hidden;
+  border-radius: 2px;
+  background: rgb(255 255 255 / 0.12);
+  animation: cdnx-fade 0.4s ease-out both;
+}
+.cdnx-splash-wait::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  width: 40%;
+  border-radius: inherit;
+  background: #b5f23d;
+  animation: cdnx-wait 1.1s ease-in-out infinite;
+}
+@keyframes cdnx-wait {
+  from { transform: translateX(-100%); }
+  to { transform: translateX(250%); }
+}
+@keyframes cdnx-fade {
+  from { opacity: 0; }
+}

@@ -6,16 +6,16 @@
  * and the app handles its own screens with hash routes (/#/live, /#/wallet …).
  */
 import dynamic from 'next/dynamic';
+import { Splash } from '../src/splash/Splash';
 
-const App = dynamic(() => import('../src/App').then((m) => m.App), {
-  ssr: false,
-  loading: () => (
-    <div className="flex min-h-dvh items-center justify-center">
-      <span className="h-3 w-3 animate-pulse rounded-full bg-lime" aria-label="Loading" />
-    </div>
-  ),
-});
+// the launch screen covers loading; it leaves once the app signals it is ready
+const App = dynamic(() => import('../src/App').then((m) => m.App), { ssr: false, loading: () => null });
 
 export default function Page() {
-  return <App />;
+  return (
+    <>
+      <App />
+      <Splash />
+    </>
+  );
 }
