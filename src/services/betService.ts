@@ -81,11 +81,13 @@ export const betService = {
   },
 
   /**
-   * Update open bets for all users from current selection results.
+   * Update open bets from current selection results (only `userId`'s bets when given).
    * `resultOf(selectionId)` returns the selection's result or null if unknown.
+   * Payouts use a ledger id derived from the bet, so two devices settling the same bet
+   * produce one entry, not two.
    */
-  async settle(resultOf: (leg: BetLeg) => LegResult | null): Promise<{ settled: BetRow[]; changed: number }> {
-    const open = await db.bets.where('status').anyOf('OPEN', 'PARTIALLY_CASHED_OUT').toArray();
+  async settle(resultOf: (leg: BetLeg) => LegResult | null, userId?: string): Promise<{ settled: BetRow[]; changed: number }> {
+    const open = (await db.bets.where('status').anyOf('OPEN', 'PARTIALLY_CASHED_OUT').toArray()).filter((b) => !userId || b.userId === userId);
     const settled: BetRow[] = [];
     let touched = 0;
     for (const bet of open) {
@@ -108,12 +110,14 @@ export const betService = {
           next.status = out.status;
           next.settledAt = Date.now();
           next.returnMinor = out.returnMinor.toString();
-          if (out.returnMinor > 0n) {
+          // already paid on another of this user's devices (the entry synced here): don't pay twice
+          const paidElsewhere = !!(await db.ledger.get(`l_settle_${bet.id}`));
+          if (out.returnMinor > 0n && !paidElsewhere) {
             const w = await db.wallets.get(bet.userId);
             if (w) {
               const amt = convertMinor(out.returnMinor, bet.currency, w.currency);
               const note = `${out.status === 'WON' ? 'Winnings' : 'Refund'} · ${legs[0].home} v ${legs[0].away}${legs.length > 1 ? ' +' + (legs.length - 1) : ''}${w.currency !== bet.currency ? ` (converted from ${formatMoney(out.returnMinor, bet.currency)})` : ''}`;
-              await applyChange(bet.userId, amt, out.status === 'WON' ? 'BET_WON' : 'BET_REFUND', { refId: bet.id, note });
+              await applyChange(bet.userId, amt, out.status === 'WON' ? 'BET_WON' : 'BET_REFUND', { id: `l_settle_${bet.id}`, refId: bet.id, note });
             }
           }
           settled.push(next);

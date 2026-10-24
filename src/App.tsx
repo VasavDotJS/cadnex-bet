@@ -7,7 +7,7 @@ import { useReduced } from './components/motion';
 import { Toasts } from './components/Toasts';
 import { TwoTone } from './components/ui';
 import { db } from './db/db';
-import { Forgot, Login, Signup } from './features/auth/Auth';
+import { Forgot, Login, ResetPassword, Signup } from './features/auth/Auth';
 import { Landing } from './features/auth/Landing';
 import { MyBets } from './features/bets/MyBets';
 import { EventPage } from './features/event/EventPage';
@@ -112,8 +112,11 @@ function Page({ children }: { children: ReactNode }) {
 function AppRoutes() {
   const loc = useLocation();
   const user = useSession((s) => s.user);
+  const recovery = useSession((s) => s.recovery);
   useEffect(() => { window.scrollTo(0, 0); }, [loc.pathname]);
-  const bare = ['/login', '/signup', '/forgot'].includes(loc.pathname) || (!user && loc.pathname === '/');
+  // opened from a password-reset email: choose a new password first
+  if (recovery && user && loc.pathname !== '/reset') return <Navigate to="/reset" replace />;
+  const bare = ['/login', '/signup', '/forgot', '/reset'].includes(loc.pathname) || (!user && loc.pathname === '/');
   const routes = (
     <AnimatePresence mode="wait" initial={false}>
       <Routes location={loc} key={loc.pathname}>
@@ -121,6 +124,7 @@ function AppRoutes() {
         <Route path="/login" element={user ? <Navigate to="/" replace /> : <Page><Login /></Page>} />
         <Route path="/signup" element={user ? <Navigate to="/" replace /> : <Page><Signup /></Page>} />
         <Route path="/forgot" element={<Page><Forgot /></Page>} />
+        <Route path="/reset" element={user ? <Page><ResetPassword /></Page> : <Navigate to="/forgot" replace />} />
         <Route path="/sports" element={<Page><Sports /></Page>} />
         <Route path="/sports/:sport" element={<Page><Sports /></Page>} />
         <Route path="/sports/:sport/:league" element={<Page><Sports /></Page>} />

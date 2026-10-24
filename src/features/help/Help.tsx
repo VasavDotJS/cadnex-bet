@@ -15,7 +15,7 @@ const SECTIONS: { title: string; items: [string, string][] }[] = [
       ['How live are the scores?', 'The app checks for updates every 15 seconds, and the data itself can run up to a minute behind TV. The badge at the top shows when the scores last updated. If updates stop, betting on live matches pauses until they return.'],
       ['Where do the prices come from?', 'CADNEX sets its own prices. Before a match they come from bookmaker lines published in the feed when available, otherwise from team ratings, records or player rankings. During a match they move with the real score and clock.'],
       ['Why can’t I bet right now?', 'Markets pause for a few seconds after goals, red cards, set changes and wickets, when a match is about to start, and whenever the live data is out of date.'],
-      ['Is my data shared?', 'Accounts, bets and history are stored only in this browser. Several accounts on one device are kept fully separate. Passwords are stored as salted PBKDF2 hashes.'],
+      ['Where is my account kept?', 'In the cloud, on Supabase. Log in on any phone or computer and your wallet, bets and history are there, and they update live across your devices. Each account can only ever read its own data, and passwords are handled by Supabase Auth, never stored by CADNEX. The app also keeps a copy on your device so it stays fast and still opens offline; changes made offline save when you reconnect.'],
     ],
   },
   {

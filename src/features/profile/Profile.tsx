@@ -2,6 +2,7 @@
 import { motion } from 'framer-motion';
 import { ChevronRight, Download, LogOut, RefreshCw, ShieldCheck, Trash2 } from 'lucide-react';
 import { useCanInstall, useInstall } from '../../pwa/install';
+import { useSync } from '../../cloud/sync';
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useBalanceStats } from '../../components/cards';
@@ -26,6 +27,21 @@ function Stat({ label, value, tone }: { label: string; value: string; tone?: 'up
   );
 }
 
+/** Where the account is: saved to the cloud, uploading, or waiting for a connection. */
+function SyncLine() {
+  const { status, lastSync } = useSync();
+  const [label, tone] =
+    status === 'synced' ? ['Saved to your account', 'bg-up'] :
+    status === 'syncing' ? ['Saving to your account…', 'bg-warn'] :
+    status === 'offline' || status === 'error' ? ['Offline. Changes save when you reconnect', 'bg-mute'] :
+    ['Connecting to your account…', 'bg-mute'];
+  return (
+    <p className="mt-1.5 flex items-center gap-1.5 text-[12.5px] text-mute" title={lastSync ? `Last synced ${new Date(lastSync).toLocaleTimeString()}` : undefined}>
+      <span className={`h-1.5 w-1.5 rounded-full ${tone}`} />{label}
+    </p>
+  );
+}
+
 export function Profile() {
   const user = useSession((s) => s.user)!;
   const wallet = useSession((s) => s.wallet);
@@ -43,36 +59,44 @@ export function Profile() {
   const code = wallet.currency;
   const save = async () => {
     try {
-      const u = await authService.updateProfile(user.id, form);
+      const { user: u, emailPending } = await authService.updateProfile(user.id, form, user);
       useSession.setState({ user: u });
       setEdit(false);
-      useUi.getState().toast({ tone: 'neutral', title: 'Profile saved' });
+      useUi.getState().toast(emailPending
+        ? { tone: 'neutral', title: 'Confirm your new email', body: `We sent a link to ${form.email.trim()}. The change applies once you open it.` }
+        : { tone: 'neutral', title: 'Profile saved' });
     } catch (e) { setErr(e instanceof AuthError ? e.message : 'Could not save.'); }
   };
   const changePw = async () => {
     try {
-      await authService.changePassword(user.id, pwf.current, pwf.next);
+      await authService.changePassword(user.email, pwf.current, pwf.next);
       setPw(false);
       setPwf({ current: '', next: '' });
       useUi.getState().toast({ tone: 'neutral', title: 'Password changed' });
     } catch (e) { setErr(e instanceof AuthError ? e.message : 'Could not change password.'); }
   };
   const remove = async () => {
-    await authService.deleteAccount(user.id);
-    await useSession.getState().setUser(null);
+    try {
+      await authService.deleteAccount();
+    } catch (e) {
+      useUi.getState().toast({ tone: 'error', title: e instanceof AuthError ? e.message : 'Could not delete the account.' });
+      return;
+    }
+    await useSession.getState().forget();
     nav('/', { replace: true });
   };
   const inputCls = 'h-12 w-full rounded-[16px] bg-surface2 px-4 text-[15px] outline-none focus:ring-2 focus:ring-lime';
   return (
     <div className="flex flex-col gap-6 px-4 pt-[max(20px,env(safe-area-inset-top))] md:px-0 lg:pt-4">
       <div className="flex items-center gap-4">
-        <motion.button whileTap={press} onClick={async () => { const u = await authService.updateProfile(user.id, { avatarSeed: Math.floor(Math.random() * 360) }); useSession.setState({ user: u }); }} aria-label="Change avatar colours" className="relative">
+        <motion.button whileTap={press} onClick={async () => { const { user: u } = await authService.updateProfile(user.id, { avatarSeed: Math.floor(Math.random() * 360) }, user); useSession.setState({ user: u }); }} aria-label="Change avatar colours" className="relative">
           <Avatar seed={user.avatarSeed} name={user.username} size={72} />
           <span className="absolute -bottom-1 -right-1 inline-flex h-7 w-7 items-center justify-center rounded-full bg-surface text-mute shadow"><RefreshCw size={13} /></span>
         </motion.button>
         <div className="min-w-0">
           <h1 className="truncate text-[30px] font-semibold leading-none tracking-tighter2">{user.username}</h1>
           <p className="mt-1 truncate text-[14px] text-mute">{user.email} · since {new Date(user.createdAt).toLocaleDateString([], { month: 'short', year: 'numeric' })}</p>
+          <SyncLine />
         </div>
       </div>
 
@@ -134,7 +158,7 @@ export function Profile() {
         </div>
       </Sheet>
       <Sheet open={del} onClose={() => setDel(false)} title={<>Delete <span className="text-mute">account</span></>}>
-        <p className="text-[14.5px] text-mute">This removes {user.username}, the wallet, every bet and the full history from this device. It cannot be undone.</p>
+        <p className="text-[14.5px] text-mute">This permanently deletes {user.username}: the login, the wallet, every bet and the full history, on every device. It cannot be undone.</p>
         <div className="mt-5 flex gap-2">
           <Pill className="flex-1" onClick={() => setDel(false)}>Keep account</Pill>
           <Pill tone="danger" className="flex-1" onClick={remove}>Delete everything</Pill>

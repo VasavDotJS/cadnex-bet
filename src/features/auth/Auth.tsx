@@ -1,4 +1,4 @@
-/** Sign up, log in and the demo password reset. */
+/** Sign up, log in and password reset. Accounts live in the cloud, so they work on any device. */
 import { motion, useAnimationControls } from 'framer-motion';
 import { Eye, EyeOff } from 'lucide-react';
 import { FormEvent, ReactNode, useState } from 'react';
@@ -70,7 +70,7 @@ export function Login() {
   const { controls, shake } = useShake();
   const submit = async (e: FormEvent) => {
     e.preventDefault();
-    if (!id.trim()) { setErr({ field: 'identifier', msg: 'Enter your username or email.' }); shake(); return; }
+    if (!id.trim()) { setErr({ field: 'identifier', msg: 'Enter your email address.' }); shake(); return; }
     setBusy(true);
     try {
       const u = await authService.logIn(id, pw, remember);
@@ -84,10 +84,10 @@ export function Login() {
     }
   };
   return (
-    <Frame title={['Welcome', 'back']} sub="Log in to your CADNEX demo account." footer={<>New here? <Link to="/signup" state={{ from }} className="text-ink underline-offset-2 hover:underline">Create an account</Link></>}>
+    <Frame title={['Welcome', 'back']} sub="Log in to your CADNEX account. It works on any device." footer={<>New here? <Link to="/signup" state={{ from }} className="text-ink underline-offset-2 hover:underline">Create an account</Link></>}>
       <motion.form animate={controls} onSubmit={submit} className="flex flex-col gap-4" noValidate>
-        <Field label="Username or email" error={err?.field === 'identifier' ? err.msg : undefined}>
-          <input value={id} onChange={(e) => { setId(e.target.value); setErr(null); }} autoComplete="username" className={inputCls(err?.field === 'identifier' ? 'x' : undefined)} />
+        <Field label="Email" error={err?.field === 'identifier' ? err.msg : undefined}>
+          <input type="email" inputMode="email" value={id} onChange={(e) => { setId(e.target.value); setErr(null); }} autoComplete="email" className={inputCls(err?.field === 'identifier' ? 'x' : undefined)} />
         </Field>
         <Field label="Password" error={err?.field === 'password' ? err.msg : undefined}>
           <Password id="pw" value={pw} onChange={(v) => { setPw(v); setErr(null); }} error={err?.field === 'password' ? 'x' : undefined} />
@@ -111,6 +111,7 @@ export function Signup() {
   const [err, setErr] = useState<Record<string, string>>({});
   const [busy, setBusy] = useState(false);
   const [picker, setPicker] = useState(false);
+  const [sent, setSent] = useState('');
   const { controls, shake } = useShake();
   const st = passwordStrength(f.password);
   const set = (k: keyof typeof f, v: string | boolean) => { setF({ ...f, [k]: v }); setErr({ ...err, [k]: '' }); };
@@ -119,9 +120,13 @@ export function Signup() {
     if (!f.terms) { setErr({ terms: 'Accept the terms and responsible gaming policy to continue.' }); shake(); return; }
     setBusy(true);
     try {
-      const u = await authService.signUp(f);
-      await useSession.getState().setUser(u);
-      useUi.getState().toast({ tone: 'demo', title: 'Welcome to CADNEX', body: 'Your demo wallet is funded. Change the balance any time in Wallet.' });
+      const r = await authService.signUp(f);
+      if ('confirmEmail' in r) {
+        setSent(r.confirmEmail);
+        return;
+      }
+      await useSession.getState().setUser(r.user);
+      useUi.getState().toast({ tone: 'demo', title: 'Welcome to CADNEX', body: 'Your demo wallet is funded. Your account works on any device you log in to.' });
       nav(from, { replace: true });
     } catch (x) {
       setErr(x instanceof AuthError ? { [x.field]: x.message } : { form: 'Something went wrong. Try again.' });
@@ -132,6 +137,13 @@ export function Signup() {
   };
   const max = new Date();
   max.setFullYear(max.getFullYear() - 18);
+  if (sent) {
+    return (
+      <Frame title={['Check your', 'inbox']} sub={`We sent a confirmation link to ${sent}.`} footer={<Link to="/login" className="text-ink underline-offset-2 hover:underline">Go to log in</Link>}>
+        <p className="text-[15px] leading-relaxed text-mute">Open the link in that email to finish creating your account. It signs you straight in. If it isn't there in a minute, check your spam folder.</p>
+      </Frame>
+    );
+  }
   return (
     <Frame title={['Create', 'account']} sub="Free, virtual money only. Takes a minute." footer={<>Already have an account? <Link to="/login" state={{ from }} className="text-ink underline-offset-2 hover:underline">Log in</Link></>}>
       <motion.form animate={controls} onSubmit={submit} className="flex flex-col gap-4" noValidate>
@@ -175,57 +187,70 @@ export function Signup() {
 }
 
 export function Forgot() {
-  const nav = useNavigate();
-  const [step, setStep] = useState<'ask' | 'reset'>('ask');
   const [id, setId] = useState('');
-  const [uid, setUid] = useState('');
-  const [code, setCode] = useState('');
-  const [pw, setPw] = useState('');
+  const [sent, setSent] = useState(false);
+  const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<{ field: string; msg: string } | null>(null);
   const { controls, shake } = useShake();
   const ask = async (e: FormEvent) => {
     e.preventDefault();
+    setBusy(true);
     try {
-      const r = await authService.requestReset(id);
-      setUid(r.userId);
-      setStep('reset');
-      useUi.getState().toast({ tone: 'demo', title: `Demo reset code: ${r.code}`, body: 'In a real product this would arrive by email. It expires in 10 minutes.' }, 15000);
+      await authService.requestReset(id);
+      setSent(true);
     } catch (x) {
       setErr(x instanceof AuthError ? { field: x.field, msg: x.message } : { field: 'form', msg: 'Something went wrong.' });
       shake();
-    }
-  };
-  const reset = async (e: FormEvent) => {
-    e.preventDefault();
-    try {
-      await authService.resetPassword(uid, code, pw);
-      useUi.getState().toast({ tone: 'neutral', title: 'Password updated', body: 'Log in with your new password.' });
-      nav('/login', { replace: true });
-    } catch (x) {
-      setErr(x instanceof AuthError ? { field: x.field, msg: x.message } : { field: 'form', msg: 'Something went wrong.' });
-      shake();
+    } finally {
+      setBusy(false);
     }
   };
   return (
-    <Frame title={['Reset', 'password']} sub={step === 'ask' ? 'We will show a demo code on screen.' : 'Enter the 6-digit code and a new password.'} footer={<Link to="/login" className="text-ink underline-offset-2 hover:underline">Back to log in</Link>}>
-      {step === 'ask' ? (
-        <motion.form animate={controls} onSubmit={ask} className="flex flex-col gap-4">
-          <Field label="Username or email" error={err?.msg}>
-            <input value={id} onChange={(e) => { setId(e.target.value); setErr(null); }} className={inputCls(err?.msg)} />
-          </Field>
-          <Pill tone="lime" size="lg" type="submit">Send reset code</Pill>
-        </motion.form>
+    <Frame title={['Reset', 'password']} sub={sent ? `If ${id.trim()} has an account, a reset link is on its way.` : 'We will email you a link to choose a new password.'} footer={<Link to="/login" className="text-ink underline-offset-2 hover:underline">Back to log in</Link>}>
+      {sent ? (
+        <p className="text-[15px] leading-relaxed text-mute">Open the link on this device. It brings you back to CADNEX to set a new password. Check your spam folder if it doesn't arrive within a minute.</p>
       ) : (
-        <motion.form animate={controls} onSubmit={reset} className="flex flex-col gap-4">
-          <Field label="6-digit code" error={err?.field === 'code' ? err.msg : undefined}>
-            <input value={code} onChange={(e) => { setCode(e.target.value.replace(/\D/g, '').slice(0, 6)); setErr(null); }} inputMode="numeric" className={`${inputCls(err?.field === 'code' ? 'x' : undefined)} mono tracking-[0.4em]`} />
+        <motion.form animate={controls} onSubmit={ask} className="flex flex-col gap-4">
+          <Field label="Email" error={err?.msg}>
+            <input type="email" inputMode="email" autoComplete="email" value={id} onChange={(e) => { setId(e.target.value); setErr(null); }} className={inputCls(err?.msg)} />
           </Field>
-          <Field label="New password" error={err?.field === 'password' ? err.msg : undefined}>
-            <Password id="rpw" value={pw} onChange={(v) => { setPw(v); setErr(null); }} auto="new-password" />
-          </Field>
-          <Pill tone="lime" size="lg" type="submit">Update password</Pill>
+          <Pill tone="lime" size="lg" type="submit" disabled={busy}>{busy ? 'Sending' : 'Email me a reset link'}</Pill>
         </motion.form>
       )}
+    </Frame>
+  );
+}
+
+/** Opened from the reset email: the user is signed in for recovery and picks a new password. */
+export function ResetPassword() {
+  const nav = useNavigate();
+  const [pw, setPw] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState('');
+  const { controls, shake } = useShake();
+  const save = async (e: FormEvent) => {
+    e.preventDefault();
+    setBusy(true);
+    try {
+      await authService.setNewPassword(pw);
+      useSession.getState().endRecovery();
+      useUi.getState().toast({ tone: 'neutral', title: 'Password updated', body: 'You are signed in.' });
+      nav('/', { replace: true });
+    } catch (x) {
+      setErr(x instanceof AuthError ? x.message : 'Something went wrong.');
+      shake();
+    } finally {
+      setBusy(false);
+    }
+  };
+  return (
+    <Frame title={['New', 'password']} sub="Choose a new password for your account." footer={<button onClick={() => { useSession.getState().endRecovery(); nav('/', { replace: true }); }} className="text-mute hover:text-ink">Skip for now</button>}>
+      <motion.form animate={controls} onSubmit={save} className="flex flex-col gap-4">
+        <Field label="New password" error={err || undefined}>
+          <Password id="rpw" value={pw} onChange={(v) => { setPw(v); setErr(''); }} auto="new-password" />
+        </Field>
+        <Pill tone="lime" size="lg" type="submit" disabled={busy}>{busy ? 'Saving' : 'Save password'}</Pill>
+      </motion.form>
     </Frame>
   );
 }
