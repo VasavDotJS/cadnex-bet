@@ -1,7 +1,7 @@
 import { AnimatePresence, motion } from 'framer-motion';
 import { Component, ReactNode, useEffect, useRef } from 'react';
 import { HashRouter, Navigate, Route, Routes, useLocation } from 'react-router-dom';
-import { startBridge } from './app/bridge';
+import { startBridge } from './core/bridge';
 import { Celebration } from './components/Ambient';
 import { useReduced } from './components/motion';
 import { Toasts } from './components/Toasts';

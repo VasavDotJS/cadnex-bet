@@ -1,6 +1,6 @@
 /** @type {import('tailwindcss').Config} */
 export default {
-  content: ['./index.html', './src/**/*.{ts,tsx}'],
+  content: ['./app/**/*.{ts,tsx}', './src/**/*.{ts,tsx}'],
   darkMode: ['class', '[data-theme="dark"]'],
   theme: {
     extend: {
@@ -27,8 +27,8 @@ export default {
         amber: 'rgb(var(--amber) / <alpha-value>)',
       },
       fontFamily: {
-        sans: ['Geist', 'ui-sans-serif', 'system-ui', 'sans-serif'],
-        mono: ['"Geist Mono"', 'ui-monospace', 'monospace'],
+        sans: ['var(--font-geist-sans)', 'Geist', 'ui-sans-serif', 'system-ui', 'sans-serif'],
+        mono: ['var(--font-geist-mono)', '"Geist Mono"', 'ui-monospace', 'monospace'],
       },
       borderRadius: { card: '28px', inner: '20px', well: '16px' },
       letterSpacing: { tightest: '-0.045em', tighter2: '-0.03em' },

@@ -1,12 +1,19 @@
 /** Live sports state mirrored from the engine. Components subscribe by event id. */
 import { create } from 'zustand';
-import type { EventPublic, Market, Selection } from '../engine/types';
+import { registerLeague } from '../data/leagues';
+import type { EventPublic, FeedHealth, Market, Selection } from '../engine/types';
+
+function register(events: EventPublic[]): void {
+  for (const e of events) if (e.leagueName) registerLeague({ id: e.leagueId, sport: e.sport, name: e.leagueName, short: e.leagueName.length > 14 ? e.leagueName.split(/[\s·]+/).map((w) => w[0]).join('').slice(0, 6) : e.leagueName });
+}
 
 interface LiveState {
   ready: boolean;
   mode: 'worker' | 'main' | null;
   events: Record<string, EventPublic>;
   version: number;
+  health: FeedHealth | null;
+  setHealth(h: FeedHealth): void;
   setReady(events: EventPublic[], mode: 'worker' | 'main'): void;
   apply(events: EventPublic[], removed: string[]): void;
 }
@@ -16,12 +23,18 @@ export const useLive = create<LiveState>((set) => ({
   mode: null,
   events: {},
   version: 0,
+  health: null,
+  setHealth(health) {
+    set({ health });
+  },
   setReady(events, mode) {
+    register(events);
     const map: Record<string, EventPublic> = {};
     for (const e of events) map[e.id] = e;
     set({ ready: true, mode, events: map, version: 1 });
   },
   apply(incoming, removed) {
+    register(incoming);
     set((st) => {
       const next = { ...st.events };
       for (const e of incoming) {

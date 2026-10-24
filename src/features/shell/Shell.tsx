@@ -3,7 +3,8 @@ import { LayoutGroup, motion } from 'framer-motion';
 import { Bell, ChevronDown, House, Radio, Search, Ticket, Trophy, Wallet } from 'lucide-react';
 import { ReactNode, useMemo, useState } from 'react';
 import { Link, NavLink, useLocation } from 'react-router-dom';
-import { LEAGUES, SPORTS } from '../../data/leagues';
+import { leagueOrder, SPORTS } from '../../data/leagues';
+import { FeedBadge } from '../../components/FeedBadge';
 import { Crest } from '../../components/Crest';
 import { Money } from '../../components/Money';
 import { press, spring } from '../../components/motion';
@@ -86,6 +87,7 @@ function DesktopHeader() {
     <header className="sticky top-0 z-30 hidden h-[72px] items-center gap-4 border-b hair bg-bg/80 px-6 backdrop-blur-xl lg:flex">
       <Logo />
       <DemoBadge />
+      <FeedBadge className="hidden 2xl:inline-flex" />
       <nav className="ml-4 flex items-center gap-1" aria-label="Primary">
         {NAV.map((n) => (
           <NavLink key={n.to} to={n.to} end={n.end} className={({ isActive }) => `relative rounded-full px-3.5 py-2 text-[14px] transition-colors ${isActive ? 'text-ink' : 'text-mute hover:text-ink'}`}>
@@ -129,23 +131,27 @@ function DesktopHeader() {
 function Sidebar() {
   const events = useLive((s) => s.events);
   const [open, setOpen] = useState<Record<string, boolean>>({ football: true });
-  const counts = useMemo(() => {
-    const c: Record<string, { live: number; total: number }> = {};
+  // competitions that actually have matches this week, in catalogue order
+  const leaguesBySport = useMemo(() => {
+    const m = new Map<string, { id: string; name: string; sport: string; live: number; total: number }>();
     for (const e of Object.values(events)) {
       if (e.status === 'FINISHED') continue;
-      c[e.leagueId] ??= { live: 0, total: 0 };
-      c[e.leagueId].total++;
-      if (e.status === 'LIVE') c[e.leagueId].live++;
+      const k = e.leagueId;
+      const cur = m.get(k) ?? { id: k, name: e.sport === 'tennis' ? (e.leagueId === 'atp' ? 'ATP Tour' : 'WTA Tour') : e.leagueName, sport: e.sport, live: 0, total: 0 };
+      cur.total++;
+      if (e.status === 'LIVE') cur.live++;
+      m.set(k, cur);
     }
-    return c;
+    return [...m.values()].sort((a, b) => leagueOrder(a.id) - leagueOrder(b.id) || a.name.localeCompare(b.name));
   }, [events]);
   const favs = useSession((s) => s.settings?.favourites) ?? NO_FAVS;
   return (
     <aside className="sticky top-[84px] hidden max-h-[calc(100dvh-100px)] w-[240px] shrink-0 overflow-y-auto pb-6 xl:block" aria-label="Sports and leagues">
       <p className="px-3 pb-2 text-[12px] text-mute">Sports</p>
       {SPORTS.map((s) => {
-        const leagues = LEAGUES.filter((l) => l.sport === s.id);
-        const live = leagues.reduce((a, l) => a + (counts[l.id]?.live ?? 0), 0);
+        const leagues = leaguesBySport.filter((l) => l.sport === s.id);
+        const live = leagues.reduce((a, l) => a + l.live, 0);
+        if (!leagues.length) return null;
         const isOpen = !!open[s.id];
         return (
           <div key={s.id} className="mb-1">
@@ -158,9 +164,9 @@ function Sidebar() {
             {isOpen && (
               <div className="ml-7 flex flex-col border-l hair pl-2">
                 {leagues.map((l) => (
-                  <NavLink key={l.id} to={`/sports/${s.id}/${l.id}`} className={({ isActive }) => `flex h-9 items-center justify-between rounded-full px-3 text-[13px] ${isActive ? 'bg-surface2 text-ink' : 'text-mute hover:text-ink'}`}>
+                  <NavLink key={l.id} to={`/sports/${s.id}/${encodeURIComponent(l.id)}`} className={({ isActive }) => `flex h-9 items-center justify-between rounded-full px-3 text-[13px] ${isActive ? 'bg-surface2 text-ink' : 'text-mute hover:text-ink'}`}>
                     <span className="truncate">{l.name}</span>
-                    <span className="num text-[11px] text-faint">{counts[l.id]?.total ?? 0}</span>
+                    <span className="num text-[11px] text-faint">{l.total}</span>
                   </NavLink>
                 ))}
               </div>
@@ -199,7 +205,7 @@ export function Shell({ children }: { children: ReactNode }) {
         </div>
       </div>
       <footer className="mx-auto max-w-[1520px] px-6 pb-[160px] pt-6 text-[12px] leading-relaxed text-faint lg:pb-10">
-        <p>CADNEX is a fictional simulation. No affiliation with any league, team or player. No real money.</p>
+        <p>CADNEX uses virtual money only. Fixtures and scores come from ESPN’s public data and can run up to a minute behind live TV. Prices are CADNEX’s own. No affiliation with ESPN or any league, team or player.</p>
         <p className="mt-1"><Link to="/help" className="underline-offset-2 hover:underline">Help & betting rules</Link> · <Link to="/responsible" className="underline-offset-2 hover:underline">Responsible gaming</Link> · 18+</p>
       </footer>
       <BottomNav />

@@ -53,18 +53,7 @@ export interface EsportsTeam extends TeamBase {
   players: Player[];
 }
 
-export interface League {
-  id: string;
-  sport: SportId;
-  name: string;
-  short: string;
-  region: string;
-  teams: string[];
-  game?: EsportsGame;
-  venues?: string[];
-  /** typical local kickoff hours (24h) for future fixtures */
-  slots: number[];
-}
+
 
 /** "Name 8, Other Name 5" → Player[] */
 export function roster(s: string): Player[] {

@@ -3,7 +3,6 @@ import { motion } from 'framer-motion';
 import { ChevronRight, LogOut, RefreshCw, ShieldCheck, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { engineSettings } from '../../app/bridge';
 import { useBalanceStats } from '../../components/cards';
 import { press } from '../../components/motion';
 import { Sheet } from '../../components/Sheet';
@@ -163,9 +162,7 @@ function Seg<T extends string | number>({ value, options, onChange, label }: { v
 
 export function SettingsPage() {
   const settings = useSession((s) => s.settings);
-  const device = useSession((s) => s.device);
   const update = useSession((s) => s.updateSettings);
-  const updateDevice = useSession((s) => s.updateDevice);
   if (!settings) return null;
   return (
     <div className="flex flex-col gap-6 px-4 pt-[max(20px,env(safe-area-inset-top))] md:px-0 lg:pt-4">
@@ -188,9 +185,6 @@ export function SettingsPage() {
           </div>
         </div>
         <Row label="When prices change" hint="What the slip does if odds move before you place"><Seg label="Odds changes" value={settings.oddsChange} onChange={(v) => void update({ oddsChange: v })} options={[{ id: 'any', label: 'Accept any' }, { id: 'higher', label: 'Higher only' }, { id: 'ask', label: 'Ask me' }]} /></Row>
-        <Row label="Match length" hint="How long a simulated match runs. Applies to every account on this device.">
-          <Seg label="Simulation speed" value={device.speedMinutes} onChange={(v) => { void updateDevice({ speedMinutes: v }); engineSettings(v); }} options={[{ id: 5, label: '5m' }, { id: 10, label: '10m' }, { id: 20, label: '20m' }, { id: 0, label: 'Real' }]} />
-        </Row>
       </section>
       <section className="overflow-hidden rounded-card bg-surface">
         <Row label="Big moments in my matches" hint="Goals, breaks and wickets in matches you bet on or follow"><Toggle on={settings.notifyGoals} onChange={(v) => void update({ notifyGoals: v })} label="Match alerts" /></Row>

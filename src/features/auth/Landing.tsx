@@ -46,7 +46,7 @@ function AgeGate() {
       <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={gentle} className="glass relative w-full max-w-[420px] rounded-[32px] p-8 text-center">
         <Logo className="justify-center" />
         <h1 className="mt-8 text-[30px] font-semibold leading-tight tracking-tighter2">Are you 18 <span className="text-mute">or older?</span></h1>
-        <p className="mt-3 text-[14.5px] text-mute">CADNEX is a betting simulation that uses virtual funds only. It is for adults.</p>
+        <p className="mt-3 text-[14.5px] text-mute">CADNEX lets you bet on real matches with virtual funds only. It is for adults.</p>
         <div className="mt-8 flex flex-col gap-2">
           <Pill tone="lime" size="lg" onClick={() => void update({ ageConfirmed: true })}>Yes, I'm 18 or older</Pill>
           <Pill tone="ghost" onClick={() => { window.location.href = 'about:blank'; }}>No, leave</Pill>
@@ -72,12 +72,12 @@ export function Landing() {
           </div>
         </header>
         <motion.div initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={gentle} className="mt-[12vh] max-w-[720px]">
-          <span className="inline-flex items-center gap-2 rounded-full bg-surface/70 px-3 py-1.5 text-[13px] text-mute backdrop-blur"><LiveDot />{liveCount} matches in play right now</span>
+          <span className="inline-flex items-center gap-2 rounded-full bg-surface/70 px-3 py-1.5 text-[13px] text-mute backdrop-blur"><LiveDot />{liveCount ? `${liveCount} real match${liveCount === 1 ? '' : 'es'} in play right now` : 'Live scores from real matches'}</span>
           <h1 className="mt-6 text-[52px] font-semibold leading-[0.95] tracking-tightest md:text-[84px]">
-            Every match,<br /><span className="text-mute">played live.</span>
+            Real matches,<br /><span className="text-mute">virtual money.</span>
           </h1>
           <p className="mt-6 max-w-[48ch] text-[17px] leading-relaxed text-mute">
-            A sportsbook that runs on virtual money. Real teams, live simulations that nobody can predict, prices that move with every chance. Football, basketball, tennis, cricket and esports.
+            Bet on real football, NBA, tennis and cricket with a demo wallet. Scores update live, prices move with the game, and bets settle on the real result. No real money, ever.
           </p>
           <div className="mt-8 flex flex-wrap gap-3">
             <PillLink to="/signup" tone="lime" className="!h-14 !px-7 !text-[16px]">Create a free account</PillLink>
@@ -86,7 +86,7 @@ export function Landing() {
         </motion.div>
         <div className="mt-auto pt-16">
           <Ticker />
-          <p className="mt-6 text-[12px] text-faint">CADNEX is a fictional simulation. No affiliation with any league, team or player. No real money. 18+.</p>
+          <p className="mt-6 text-[12px] text-faint">Scores and fixtures from ESPN’s public data. CADNEX uses virtual money only and has no affiliation with ESPN or any league, team or player. 18+.</p>
         </div>
       </div>
     </div>

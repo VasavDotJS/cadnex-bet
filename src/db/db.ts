@@ -110,7 +110,7 @@ export interface DeviceRow {
 }
 
 export interface EngineRow {
-  id: 'snapshot';
+  id: string;
   snapshot: EngineSnapshot;
 }
 

@@ -2,7 +2,7 @@
  * Contracts shared by the engine (worker) and the app (main thread).
  * Everything here is plain data so it can cross postMessage and live in IndexedDB.
  */
-import type { EsportsGame, SportId } from '../data/types';
+import type { SportId } from '../data/types';
 import type { LegResult } from '../lib/money';
 
 export type EventStatus = 'SCHEDULED' | 'LIVE' | 'FINISHED' | 'SUSPENDED';
@@ -75,13 +75,17 @@ export interface EventPublic {
   id: string;
   sport: SportId;
   leagueId: string;
-  game?: EsportsGame;
+  leagueName: string;
   home: Participant;
   away: Participant;
   startTime: number;
   status: EventStatus;
   venue: string;
   round: string;
+  /** short status from the data provider, e.g. "FT", "Postponed", "IND need 24 from 18" */
+  detail: string;
+  /** where prices come from before kick-off: odds | ratings | form | spread | ranking | default */
+  priceSource?: string;
   // live presentation
   clock: string;
   period: string;
@@ -104,23 +108,30 @@ export interface EventPublic {
 
 // ── worker protocol ──
 
-export interface EngineSettings {
-  speedMinutes: number; // 5 | 10 | 20 | 0 (0 = real time)
-}
-
 export type ToEngine =
-  | { type: 'init'; snapshot: EngineSnapshot | null; settings: EngineSettings; now: number }
-  | { type: 'settings'; settings: EngineSettings }
+  | { type: 'init'; snapshot: EngineSnapshot | null; now: number }
   | { type: 'focus'; eventId: string | null }
+  | { type: 'track'; ids: string[] }
+  | { type: 'refresh' }
   | { type: 'snapshot-request' };
+
+export interface FeedHealth {
+  ok: boolean;
+  lastOk: number;
+  lastTry: number;
+  error?: string;
+  provider: string;
+}
 
 export type FromEngine =
   | { type: 'ready'; events: EventPublic[] }
   | { type: 'update'; events: EventPublic[]; removed: string[] }
+  | { type: 'status'; health: FeedHealth }
   | { type: 'snapshot'; snapshot: EngineSnapshot }
   | { type: 'log'; msg: string };
 
 export interface EngineSnapshot {
   savedAt: number;
-  events: unknown[]; // opaque serialized engine events
+  version: 2;
+  events: unknown[];
 }

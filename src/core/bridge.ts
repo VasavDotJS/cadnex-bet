@@ -5,6 +5,7 @@
 import { db, uid } from '../db/db';
 import { startEngine, EngineHandle } from '../engine/client';
 import type { EventPublic, FromEngine } from '../engine/types';
+import { parseEventKey } from '../feed/types';
 import { formatMoney } from '../lib/money';
 import { betService, shortRef } from '../services/betService';
 import { findSelection, useLive } from '../store/live';
@@ -23,7 +24,12 @@ async function settleNow(): Promise<void> {
     const events = useLive.getState().events;
     const { settled, changed } = await betService.settle((leg) => {
       const ev = events[leg.eventId];
-      if (!ev) return ready ? 'VOID' : null;
+      if (!ev) {
+        if (!ready) return null;
+        // bets from the old simulated matches, or real matches we can no longer find
+        if (!parseEventKey(leg.eventId)) return 'VOID';
+        return Date.now() - leg.startTime > 4 * 86_400_000 ? 'VOID' : null;
+      }
       const f = findSelection(ev, leg.marketKey, leg.code);
       if (!f) return ev.status === 'FINISHED' ? 'VOID' : null;
       return f.selection.result === 'PENDING' ? null : f.selection.result;
@@ -87,8 +93,11 @@ function onMessage(m: FromEngine): void {
       if (touched) void settleNow();
       break;
     }
+    case 'status':
+      useLive.getState().setHealth(m.health);
+      break;
     case 'snapshot':
-      if (ready) void db.engine.put({ id: 'snapshot', snapshot: m.snapshot }).catch(() => {});
+      if (ready) void db.engine.put({ id: SNAP_KEY, snapshot: m.snapshot }).catch(() => {});
       break;
     case 'log':
       console.warn('[engine]', m.msg);
@@ -96,7 +105,20 @@ function onMessage(m: FromEngine): void {
   }
 }
 
+const SNAP_KEY = 'live-v2';
 let starting: Promise<void> | null = null;
+let lastTracked = '';
+
+/** Tell the engine which matches carry open bets or alerts, so it keeps following them. */
+function syncTracked(): void {
+  const s = useSession.getState();
+  const ids = new Set<string>(s.settings?.followed ?? []);
+  for (const b of s.bets) if (b.status === 'OPEN' || b.status === 'PARTIALLY_CASHED_OUT') for (const l of b.legs) if (parseEventKey(l.eventId)) ids.add(l.eventId);
+  const key = [...ids].sort().join(',');
+  if (key === lastTracked) return;
+  lastTracked = key;
+  handle?.send({ type: 'track', ids: [...ids] });
+}
 
 export function startBridge(): Promise<void> {
   if (!starting) starting = boot();
@@ -107,19 +129,24 @@ async function boot(): Promise<void> {
   handle = await startEngine(onMessage);
   let snapshot = null;
   try {
-    snapshot = (await db.engine.get('snapshot'))?.snapshot ?? null;
+    snapshot = (await db.engine.get(SNAP_KEY))?.snapshot ?? null;
+    void db.engine.delete('snapshot').catch(() => {}); // old simulation state
   } catch {
     snapshot = null;
   }
-  const device = useSession.getState().device;
-  handle.send({ type: 'init', snapshot, settings: { speedMinutes: device.speedMinutes }, now: Date.now() });
+  handle.send({ type: 'init', snapshot, now: Date.now() });
+  syncTracked();
+  useSession.subscribe(syncTracked);
   const save = () => handle?.send({ type: 'snapshot-request' });
-  document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') save(); });
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'hidden') save();
+    else handle?.send({ type: 'refresh' });
+  });
   window.addEventListener('pagehide', save);
 }
 
-export function engineSettings(speedMinutes: number): void {
-  handle?.send({ type: 'settings', settings: { speedMinutes } });
+export function refreshFeed(): void {
+  handle?.send({ type: 'refresh' });
 }
 
 export function focusEvent(id: string | null): void {
