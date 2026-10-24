@@ -9,6 +9,7 @@ import { LiveDot, Pill, PillLink } from '../../components/ui';
 import { useLive } from '../../store/live';
 import { useLiveIds } from '../../store/selectors';
 import { useSession } from '../../store/session';
+import { InstallButton } from '../install/Install';
 import { DemoBadge, Logo } from '../shell/Shell';
 
 function Ticker() {
@@ -44,7 +45,7 @@ function AgeGate() {
     <div className="relative flex min-h-dvh items-center justify-center overflow-hidden px-6">
       <Orbs palette="landing" intensity={0.8} />
       <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={gentle} className="glass relative w-full max-w-[420px] rounded-[32px] p-8 text-center">
-        <Logo className="justify-center" />
+        <Logo lockup className="justify-center" markClass="h-[52px]" />
         <h1 className="mt-8 text-[30px] font-semibold leading-tight tracking-tighter2">Are you 18 <span className="text-mute">or older?</span></h1>
         <p className="mt-3 text-[14.5px] text-mute">CADNEX lets you bet on real matches with virtual funds only. It is for adults.</p>
         <div className="mt-8 flex flex-col gap-2">
@@ -82,6 +83,7 @@ export function Landing() {
           <div className="mt-8 flex flex-wrap gap-3">
             <PillLink to="/signup" tone="lime" className="!h-14 !px-7 !text-[16px]">Create a free account</PillLink>
             <PillLink to="/live" className="!h-14 !px-7 !text-[16px]">Watch live matches</PillLink>
+            <InstallButton className="!h-14 !bg-transparent !px-5 !text-[16px] text-mute hover:text-ink" />
           </div>
         </motion.div>
         <div className="mt-auto pt-16">

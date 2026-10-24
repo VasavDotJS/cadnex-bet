@@ -3,6 +3,7 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { ArrowDownLeft, ArrowUpRight, Bell, Gift, History, Search, Ticket, X } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { CdnxMark } from '../../components/Brand';
 import { StackedBalanceCard } from '../../components/cards';
 import { MatchRow, LiveCard } from '../../components/match';
 import { useOddsFmt } from '../../components/OddsButton';
@@ -16,6 +17,7 @@ import { useSession } from '../../store/session';
 import { useSlip } from '../../store/slip';
 import { useUi } from '../../store/ui';
 import { DemoBadge } from '../shell/Shell';
+import { InstallBanner } from '../install/Install';
 import { useUnread } from '../notifications/Notifications';
 
 function greeting(): string {
@@ -134,7 +136,7 @@ export function Home() {
       <div className="app-header relative overflow-hidden px-4 pb-6 pt-[max(18px,env(safe-area-inset-top))] text-white md:rounded-card md:px-6 lg:mt-1">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <span className="text-[17px] font-semibold tracking-tighter2">CDNX</span>
+            <CdnxMark className="h-[16px] text-white" />
             <DemoBadge className="!bg-white/12 !text-white/80 [&>span]:!bg-lime" />
           </div>
           <div className="flex items-center gap-1 lg:hidden">
@@ -158,6 +160,7 @@ export function Home() {
 
       <div className="-mt-4 flex flex-col gap-5">
         <DailyStrip />
+        <InstallBanner />
         <div className="px-4 md:px-0">
           <Tabs id="homeseg" tabs={[{ id: 'sports', label: 'Sports' }, { id: 'live', label: 'Live', count: liveIds.length }]} value={seg} onChange={setSeg} />
         </div>

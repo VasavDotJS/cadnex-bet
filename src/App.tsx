@@ -12,6 +12,7 @@ import { Landing } from './features/auth/Landing';
 import { MyBets } from './features/bets/MyBets';
 import { EventPage } from './features/event/EventPage';
 import { Help, NotFound } from './features/help/Help';
+import { InstallSheet } from './features/install/Install';
 import { Home } from './features/home/Home';
 import { NotificationsPage } from './features/notifications/Notifications';
 import { Profile, SettingsPage } from './features/profile/Profile';
@@ -23,6 +24,7 @@ import { FlyingChip, SlipPill, SlipSheet } from './features/slip/BetSlip';
 import { LiveCentre, Sports } from './features/sports/Sports';
 import { WalletPage } from './features/wallet/Wallet';
 import { convertMinor, formatMoney } from './lib/money';
+import { startPwa } from './pwa/install';
 import { useSession } from './store/session';
 import { useUi } from './store/ui';
 
@@ -142,6 +144,7 @@ export function App() {
   useTheme();
   useSessionReminder();
   useEffect(() => {
+    startPwa();
     void useSession.getState().boot().then(() => startBridge());
   }, []);
   if (!booted) {
@@ -160,6 +163,7 @@ export function App() {
         <SearchPalette />
         <FlyingChip />
         <Celebration />
+        <InstallSheet />
         <Toasts />
       </HashRouter>
     </ErrorBoundary>

@@ -1,5 +1,6 @@
 /** My Bets: open, cash-out-able and settled bets with leg-by-leg detail. */
 import { AnimatePresence, motion } from 'framer-motion';
+import { CdnxMark } from '../../components/Brand';
 import { ChevronDown, ReceiptText } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
@@ -108,7 +109,7 @@ export function Receipt({ bet, open, onClose }: { bet: BetRow; open: boolean; on
         <div className="pointer-events-none absolute -right-16 -top-16 h-48 w-48 rounded-full bg-[#7c6cf6]/45 blur-3xl" />
         <div className="pointer-events-none absolute -bottom-20 -left-10 h-44 w-44 rounded-full bg-[#b5f23d]/25 blur-3xl" />
         <div className="relative flex items-center justify-between">
-          <span className="text-[15px] font-semibold tracking-tighter2">CDNX</span>
+          <CdnxMark className="h-[14px] text-white" />
           <span className={`rounded-full px-3 py-1 text-[12px] font-medium ${tone.cls}`}>{tone.label}</span>
         </div>
         <p className="relative mt-6 text-[13px] text-white/50">{typeLabel(bet)} · Ref {shortRef(bet.id)}</p>

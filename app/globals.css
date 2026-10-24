@@ -220,3 +220,21 @@ input[type='date']::-webkit-calendar-picker-indicator {
     radial-gradient(90% 120% at 85% -10%, var(--header-b) 0%, transparent 60%),
     linear-gradient(180deg, var(--header-a) 0%, color-mix(in srgb, var(--header-a) 55%, var(--header-c)) 72%, var(--header-c) 100%);
 }
+
+/* ───────────── installed app ───────────── */
+@media (display-mode: standalone) {
+  html,
+  body {
+    overscroll-behavior-y: none;
+  }
+  /* iOS draws white status-bar text over the page; keep it legible in the light theme */
+  :root[data-theme='light'] body::before {
+    content: '';
+    position: fixed;
+    inset: 0 0 auto 0;
+    height: env(safe-area-inset-top);
+    background: #0a0a0c;
+    z-index: 100;
+    pointer-events: none;
+  }
+}
