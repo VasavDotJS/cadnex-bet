@@ -17,7 +17,7 @@ export async function applyChange(
   userId: string,
   delta: Minor,
   type: LedgerType,
-  opts: { refId?: string; note?: string; allowNegative?: boolean; currency?: string } = {},
+  opts: { id?: string; refId?: string; note?: string; allowNegative?: boolean; currency?: string } = {},
 ): Promise<{ wallet: WalletRow; entry: LedgerRow }> {
   const w = await db.wallets.get(userId);
   if (!w) throw new WalletError('Wallet not found.');
@@ -28,7 +28,7 @@ export async function applyChange(
   if (next > maxBalance(w.currency)) throw new WalletError(`The demo balance is capped at ${formatMoney(maxBalance(w.currency), w.currency, { noDecimals: true })}.`);
   const wallet: WalletRow = { ...w, balanceMinor: next.toString(), updatedAt: Date.now() };
   const entry: LedgerRow = {
-    id: uid('l_'), userId, type, amountMinor: delta.toString(), balanceAfterMinor: next.toString(), currency: w.currency,
+    id: opts.id ?? uid('l_'), userId, type, amountMinor: delta.toString(), balanceAfterMinor: next.toString(), currency: w.currency,
     refId: opts.refId, note: opts.note, createdAt: stamp(),
   };
   await db.wallets.put(wallet);

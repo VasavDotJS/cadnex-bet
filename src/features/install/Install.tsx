@@ -107,7 +107,7 @@ export function InstallSheet() {
             <p className="mt-1.5 text-[13.5px] text-mute">Free · no app store needed</p>
           </div>
         </div>
-        <p className="text-[14.5px] leading-relaxed text-mute">Add CADNEX to your home screen. It opens full screen like any other app, starts faster, and your wallet and bets stay on this device.</p>
+        <p className="text-[14.5px] leading-relaxed text-mute">Add CADNEX to your home screen. It opens full screen like any other app, starts faster, and you stay signed in to your account.</p>
         <Steps />
         <Pill tone="lime" size="lg" onClick={close}>Got it</Pill>
       </div>

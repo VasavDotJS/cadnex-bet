@@ -2,7 +2,7 @@
  * Connects the engine to the app: restores and saves engine snapshots, mirrors updates into
  * the live store, settles bets as markets resolve and raises notifications.
  */
-import { db, uid } from '../db/db';
+import { db } from '../db/db';
 import { startEngine, EngineHandle } from '../engine/client';
 import type { EventPublic, FromEngine } from '../engine/types';
 import { parseEventKey } from '../feed/types';
@@ -22,6 +22,8 @@ async function settleNow(): Promise<void> {
   settling = true;
   try {
     const events = useLive.getState().events;
+    const me = useSession.getState().user;
+    if (!me) return; // nobody signed in on this device: nothing to settle here
     const { settled, changed } = await betService.settle((leg) => {
       const ev = events[leg.eventId];
       if (!ev) {
@@ -33,15 +35,14 @@ async function settleNow(): Promise<void> {
       const f = findSelection(ev, leg.marketKey, leg.code);
       if (!f) return ev.status === 'FINISHED' ? 'VOID' : null;
       return f.selection.result === 'PENDING' ? null : f.selection.result;
-    });
-    const me = useSession.getState().user;
+    }, me.id);
     if (settled.length) {
       for (const b of settled) {
         const ret = BigInt(b.returnMinor ?? '0');
         const title = b.status === 'WON' ? `Won ${formatMoney(ret, b.currency)}` : b.status === 'VOID' ? 'Bet voided, stake returned' : 'Bet lost';
         const body = `${b.legs[0].home} v ${b.legs[0].away}${b.legs.length > 1 ? ` +${b.legs.length - 1} more` : ''} · Ref ${shortRef(b.id)}`;
-        await db.notifications.add({ id: uid('n_'), userId: b.userId, kind: 'settled', title, body, link: '/bets', createdAt: Date.now(), read: false });
-        if (me && b.userId === me.id && useSession.getState().settings?.notifySettled !== false) {
+        await db.notifications.put({ id: `n_settle_${b.id}`, userId: b.userId, kind: 'settled', title, body, link: '/bets', createdAt: Date.now(), read: false });
+        if (b.userId === me.id && useSession.getState().settings?.notifySettled !== false) {
           const ui = useUi.getState();
           if (b.status === 'WON') { ui.toast({ tone: 'win', title, body, action: { label: 'View', to: '/bets' } }); ui.win(); }
           else if (b.status === 'LOST' && ret === 0n) { ui.toast({ tone: 'loss', title, body }); ui.loss(); }
@@ -49,7 +50,7 @@ async function settleNow(): Promise<void> {
         }
       }
       await useSession.getState().refreshAll();
-    } else if (me && changed) {
+    } else if (changed) {
       // legs may have updated (e.g. one leg of a parlay won); refresh quietly
       await useSession.getState().refreshBets();
     }
