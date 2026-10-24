@@ -1,5 +1,6 @@
 /** Bet slip: right panel on desktop, draggable bottom sheet on mobile. */
 import { AnimatePresence, motion, PanInfo, useDragControls } from 'framer-motion';
+import { useShare } from '../../share/ShareStory';
 import { Check, ChevronDown, Delete, Lock, Share2, Trash2, X } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
@@ -162,7 +163,6 @@ export function SlipContent({ onDone }: { onDone?: () => void }) {
   const [phase, setPhase] = useState<'idle' | 'placing' | 'done'>('idle');
   const [placed, setPlaced] = useState<string[]>([]);
   const [code, setCode] = useState('');
-  const [shared, setShared] = useState<string | null>(null);
   const cur = model.currency;
   const chips = useMemo(() => quickStakes(cur), [cur]);
 
@@ -216,7 +216,7 @@ export function SlipContent({ onDone }: { onDone?: () => void }) {
       setPlaced(rows.map((b) => shortRef(b.id)));
       setPhase('done');
       await useSession.getState().refreshAll();
-      useUi.getState().toast({ tone: 'neutral', title: rows.length > 1 ? `${rows.length} bets placed` : 'Bet placed', body: `Ref ${rows.map((b) => shortRef(b.id)).join(', ')}`, action: { label: 'My bets', to: '/bets' } });
+      useUi.getState().toast({ tone: 'neutral', title: rows.length > 1 ? `${rows.length} bets placed` : 'Bet placed', body: `Ref ${rows.map((b) => shortRef(b.id)).join(', ')}`, action: { label: 'Share story', to: `/bets?share=${rows[0].id}` } }, 6500);
       requestSettlement();
       setTimeout(() => {
         useSlip.getState().clear();
@@ -233,9 +233,8 @@ export function SlipContent({ onDone }: { onDone?: () => void }) {
 
   const share = () => {
     if (!slip.sels.length) return;
-    const c = saveBooking(slip.sels);
-    setShared(c);
-    void navigator.clipboard?.writeText(`CDNX-${c}`);
+    saveBooking(slip.sels); // keeps the on-device booking code working too
+    useShare.getState().open({ kind: 'slip' });
   };
   const load = () => {
     const sels = loadBooking(code);
@@ -371,7 +370,7 @@ export function SlipContent({ onDone }: { onDone?: () => void }) {
         </Pill>
       </div>
       <div className="flex items-center justify-between px-1">
-        <button onClick={share} className="inline-flex h-10 items-center gap-1.5 text-[13px] text-mute hover:text-ink"><Share2 size={15} strokeWidth={1.5} />{shared ? `Code CDNX-${shared} copied` : 'Share slip'}</button>
+        <button onClick={share} className="inline-flex h-10 items-center gap-1.5 text-[13px] text-mute hover:text-ink"><Share2 size={15} strokeWidth={1.5} />{'Share as a story'}</button>
         <button onClick={() => slip.clear()} className="inline-flex h-10 items-center gap-1.5 text-[13px] text-mute hover:text-ink"><Trash2 size={15} strokeWidth={1.5} />Clear</button>
       </div>
     </div>
