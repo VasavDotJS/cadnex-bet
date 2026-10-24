@@ -2,7 +2,6 @@
  * Main-thread side of the engine. Runs the engine in a Web Worker; if the environment
  * refuses workers, falls back to running the same host on the main thread.
  */
-import EngineWorker from './worker?worker&inline';
 import type { FromEngine, ToEngine } from './types';
 
 export interface EngineHandle {
@@ -12,7 +11,8 @@ export interface EngineHandle {
 
 export async function startEngine(onMessage: (m: FromEngine) => void): Promise<EngineHandle> {
   try {
-    const w: Worker = new EngineWorker();
+    // bundlers (Next.js/webpack) turn this into a separate worker chunk
+    const w: Worker = new Worker(new URL('./worker.ts', import.meta.url), { type: 'module' });
     let alive = false;
     const ok = await new Promise<boolean>((resolve) => {
       const t = setTimeout(() => resolve(alive), 2500);

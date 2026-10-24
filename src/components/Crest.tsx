@@ -50,7 +50,7 @@ export function Crest({ p, sport, size = 40, className = '' }: { p: Participant;
           <circle cx="20" cy="20" r="15.6" fill="none" stroke={fg} strokeOpacity="0.3" strokeWidth="0.8" />
         </>
       )}
-      <text x="20" y={shield ? 21.5 : 20.5} textAnchor="middle" dominantBaseline="middle" fill={fg} fontFamily="Geist, sans-serif" fontWeight={650} fontSize={40 * fs} letterSpacing="-0.02em">
+      <text x="20" y={shield ? 21.5 : 20.5} textAnchor="middle" dominantBaseline="middle" fill={fg} style={{ fontFamily: 'var(--font-geist-sans), Geist, system-ui, sans-serif' }} fontWeight={650} fontSize={40 * fs} letterSpacing="-0.02em">
         {text}
       </text>
     </svg>

@@ -4,7 +4,7 @@ import { Check, ChevronDown, Delete, Lock, Share2, Trash2, X } from 'lucide-reac
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { leagueById } from '../../data/leagues';
-import { requestSettlement } from '../../app/bridge';
+import { requestSettlement } from '../../core/bridge';
 import { useOddsFmt } from '../../components/OddsButton';
 import { gentle, press, snappy, spring } from '../../components/motion';
 import { Pill, Tabs } from '../../components/ui';
@@ -104,7 +104,7 @@ export function Keypad({ onKey }: { onKey: (k: string) => void }) {
           whileTap={{ scale: 0.92 }}
           transition={snappy}
           onClick={() => { onKey(k); if (navigator.vibrate) navigator.vibrate(5); }}
-          className="flex h-[52px] items-center justify-center rounded-[16px] bg-surface2 text-[22px] font-medium active:bg-surface3"
+          className="flex h-[46px] items-center justify-center rounded-[14px] bg-surface2 text-[20px] font-medium active:bg-surface3"
           aria-label={k === '⌫' ? 'Delete' : k === '.' ? 'Decimal point' : k}
         >
           {k === '⌫' ? <Delete size={22} strokeWidth={1.5} /> : k}
@@ -351,7 +351,6 @@ export function SlipContent({ onDone }: { onDone?: () => void }) {
         )}
         {coarse && <Keypad onKey={onKey} />}
 
-        <div className="sticky bottom-0 z-10 -mx-3.5 -mb-3.5 flex flex-col gap-2 rounded-b-[22px] bg-surface px-3.5 pb-3.5 pt-2">
         <div className="mt-1 grid grid-cols-2 gap-y-1 text-[13px]">
           <span className="text-mute">{model.mode === 'system' ? `${model.lines} lines · total stake` : 'Total stake'}</span>
           <span className="mono text-right">{formatMoney(model.totalStake, cur)}</span>
@@ -370,7 +369,6 @@ export function SlipContent({ onDone }: { onDone?: () => void }) {
             <span className="inline-flex items-center gap-2"><motion.span className="h-4 w-4 rounded-full border-2 border-onlime/30 border-t-onlime" animate={{ rotate: 360 }} transition={{ repeat: Infinity, duration: 0.8, ease: 'linear' }} />Placing</span>
           ) : !user ? 'Log in to place bets' : model.needsAccept ? 'Accept price changes first' : `Place bet${model.totalStake > 0n ? ` · ${formatMoney(model.totalStake, cur)}` : ''}`}
         </Pill>
-        </div>
       </div>
       <div className="flex items-center justify-between px-1">
         <button onClick={share} className="inline-flex h-10 items-center gap-1.5 text-[13px] text-mute hover:text-ink"><Share2 size={15} strokeWidth={1.5} />{shared ? `Code CDNX-${shared} copied` : 'Share slip'}</button>
@@ -403,7 +401,7 @@ export function SlipPill() {
           animate={{ y: 0, opacity: 1, scale: 1 }}
           exit={{ y: 40, opacity: 0 }}
           transition={spring}
-          onClick={() => setSlip('half')}
+          onClick={() => setSlip('full')}
           className="pointer-events-auto flex h-12 items-center gap-3 rounded-full bg-lime pl-2 pr-5 text-onlime shadow-float"
           aria-label={`Open bet slip, ${sels.length} selections`}
         >

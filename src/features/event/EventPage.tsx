@@ -3,8 +3,8 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { ArrowLeft, Bell, BellRing, ChartNoAxesColumn, Settings2, Share2, Star } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import { focusEvent } from '../../app/bridge';
-import { leagueById } from '../../data/leagues';
+import { focusEvent } from '../../core/bridge';
+import { FeedBadge } from '../../components/FeedBadge';
 import type { EventPublic, Incident } from '../../engine/types';
 import { Orbs } from '../../components/Ambient';
 import { Crest } from '../../components/Crest';
@@ -41,7 +41,7 @@ function Rail({ ev }: { ev: EventPublic }) {
     { label: 'Odds and display settings', icon: <Settings2 size={18} strokeWidth={1.5} />, on: () => nav('/settings') },
   ];
   return (
-    <div className="glass absolute right-3 top-24 z-10 flex flex-col gap-1 rounded-full p-1.5 md:right-5">
+    <div className="glass relative z-10 mt-4 inline-flex gap-1 self-start rounded-full p-1.5 md:absolute md:right-5 md:top-24 md:mt-0 md:flex-col">
       {items.map((it) => (
         <motion.button key={it.label} whileTap={press} onClick={it.on} aria-label={it.label} title={it.label} className="inline-flex h-11 w-11 items-center justify-center rounded-full hover:bg-surface2">
           {it.icon}
@@ -88,11 +88,12 @@ function Scoreboard({ ev }: { ev: EventPublic }) {
           {ev.serving === 1 && <span className="h-1.5 w-1.5 rounded-full bg-lime" aria-label="Serving or batting" />}
         </div>
       </div>
-      <div className="mt-3 flex items-center gap-2">
+      <div className="mt-3 flex flex-wrap items-center justify-center gap-2 text-center">
         {live && <LiveTag />}
-        {live && clockDigits ? <DotMatrix text={ev.clock.replace(/\s/g, '')} dot={3} className="text-ink" still /> : <EventStatus ev={ev} now={now} />}
-        {live && !clockDigits && <span className="num text-[13px]">{ev.clock}</span>}
-        <span className="text-[13px] text-mute">{ev.status === 'SCHEDULED' ? kickoffLabel(ev.startTime) : ev.period}</span>
+        {live && clockDigits && <DotMatrix text={ev.clock.replace(/\s/g, '')} dot={3} className="text-ink" still />}
+        {live && !clockDigits && ev.clock && ev.clock !== 'Live' && ev.clock !== ev.period && <span className="num text-[13px]">{ev.clock}</span>}
+        {!live && <EventStatus ev={ev} now={now} />}
+        {(!live || ev.period !== ev.clock) && <span className="text-[13px] text-mute">{ev.status === 'SCHEDULED' ? kickoffLabel(ev.startTime) : ev.period}</span>}
       </div>
       <LiveWave pressure={ev.pressure} live={live} className="mt-2 w-full max-w-[420px]" />
       {ev.lines.length > 0 && (
@@ -176,7 +177,6 @@ export function EventPage() {
       <div className="px-4 pt-10 md:px-0"><Empty title="This match is no longer listed" body="Finished matches are cleared after a few hours." action={<Link to="/live" className="rounded-full bg-surface2 px-4 py-2.5 text-[14px]">Live matches</Link>} /></div>
     ) : <div className="px-4 pt-10 md:px-0"><div className="skeleton h-[420px] rounded-card" /></div>;
   }
-  const lg = leagueById(ev.leagueId);
   const shown = markets.filter((m) => group === 'All' || m.group === group);
   const openCount = markets.filter((m) => m.status !== 'SETTLED' && m.status !== 'VOID').length;
   return (
@@ -187,26 +187,27 @@ export function EventPage() {
           <motion.button whileTap={press} onClick={() => (window.history.length > 1 ? nav(-1) : nav('/live'))} aria-label="Back" className="inline-flex h-11 w-11 items-center justify-center rounded-full bg-surface/70 backdrop-blur">
             <ArrowLeft size={19} strokeWidth={1.5} />
           </motion.button>
-          <span className="truncate text-[13px] text-mute">{lg.name}</span>
+          <span className="min-w-0 flex-1 truncate text-[13px] text-mute">{ev.leagueName}</span>
+          <FeedBadge className="hidden sm:inline-flex" />
         </div>
-        <Rail ev={ev} />
         {/* E. editorial header */}
-        <h1 className="relative mt-6 max-w-[calc(100%-64px)] text-[40px] font-semibold leading-[0.98] tracking-tighter2 md:text-[56px]">
+        <h1 className="relative mt-6 md:max-w-[calc(100%-64px)] text-[40px] font-semibold leading-[0.98] tracking-tighter2 md:text-[56px]">
           <span className="block">{ev.home.name}</span>
           <span className="block text-mute">{ev.away.name}</span>
         </h1>
-        <div className="relative mt-4 flex max-w-[calc(100%-64px)] flex-wrap gap-1.5">
-          <Chip>{lg.name}</Chip>
+        <div className="relative mt-4 flex flex-wrap gap-1.5 md:max-w-[calc(100%-64px)]">
+          <Chip>{ev.leagueName}</Chip>
           {ev.venue && <Chip>{ev.venue}</Chip>}
           <Chip>{kickoffLabel(ev.startTime)}</Chip>
-          <Chip>{ev.round}</Chip>
+          {ev.round && <Chip>{ev.round}</Chip>}
         </div>
+        <Rail ev={ev} />
         <div className="relative mt-8">
           <Scoreboard ev={ev} />
         </div>
       </section>
 
-      {ev.status !== 'SCHEDULED' && (
+      {ev.status !== 'SCHEDULED' && ev.sport !== 'cricket' && (
         <section className="grid gap-4 px-4 md:grid-cols-[auto_1fr] md:px-0">
           <div className="card flex items-center justify-center p-5"><MomentumDial ev={ev} size={200} /></div>
           <div className="card flex flex-col justify-between p-5">
@@ -234,8 +235,15 @@ export function EventPage() {
                     {groups.map((g) => <Chip key={g} active={g === group} onClick={() => setGroup(g)}>{g}</Chip>)}
                   </div>
                 )}
+                {ev.markets.length > 0 && ev.status !== 'FINISHED' && (
+                  <p className="px-1 text-[12.5px] text-mute">
+                    Prices are CADNEX’s own{ev.priceSource === 'odds' || ev.priceSource === 'spread' || ev.priceSource === 'moneyline' ? ', built from bookmaker lines in the feed' : ev.priceSource === 'ratings' ? ', built from club ratings' : ev.priceSource === 'ranking' ? ', built from player rankings' : ev.priceSource === 'form' || ev.priceSource === 'records' ? ', built from league form' : ''}, and move with the live score. Betting pauses for a few seconds after big moments.
+                  </p>
+                )}
                 {ev.markets.length === 0 ? (
-                  <div className="flex flex-col gap-2">{[0, 1, 2].map((i) => <div key={i} className="skeleton h-[110px] rounded-[24px]" />)}</div>
+                  ev.status === 'SCHEDULED' || ev.status === 'LIVE' ? (
+                    <Empty title="No markets for this match" body={ev.sport === 'cricket' ? 'CADNEX prices T20 and one-day matches. Scores for this format are shown without betting.' : 'This match is followed for scores only.'} />
+                  ) : <Empty title="No markets" body={ev.result?.void ? `This match was ${ev.period.toLowerCase()}.` : 'This match has finished.'} />
                 ) : shown.length === 0 ? (
                   <Empty title="No markets open" body={ev.status === 'FINISHED' ? 'This match has finished and all markets are settled.' : 'Markets reopen after the next stoppage.'} />
                 ) : (
@@ -243,7 +251,7 @@ export function EventPage() {
                 )}
               </>
             )}
-            {tab === 'stats' && (ev.status === 'SCHEDULED' ? <Empty title="Stats appear once the match starts" /> : (
+            {tab === 'stats' && (ev.status === 'SCHEDULED' ? <Empty title="Stats appear once the match starts" /> : ev.stats.length === 0 ? <Empty title="No stats for this match" body="The score provider doesn’t publish match stats for this competition." /> : (
               <>
                 <StatTiles ev={ev} />
                 <div className="card p-5"><StatBars rows={ev.stats} /></div>

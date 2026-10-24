@@ -73,7 +73,7 @@ export function usePopularAccas(): { title: string; legs: AccaLeg[] }[] {
     const out: { title: string; legs: AccaLeg[] }[] = [];
     const fb = bySport('football').slice(0, 4);
     if (fb.length >= 3) out.push({ title: 'Football favourites', legs: fb });
-    const mix = [bySport('basketball')[0], bySport('tennis')[0], bySport('esports')[0], bySport('cricket')[0]].filter(Boolean) as AccaLeg[];
+    const mix = [bySport('basketball')[0], bySport('tennis')[0], bySport('football')[4], bySport('cricket')[0]].filter(Boolean) as AccaLeg[];
     if (mix.length >= 3) out.push({ title: 'Across the board', legs: mix });
     const tn = bySport('tennis').slice(0, 3);
     if (tn.length >= 3) out.push({ title: 'Tennis treble', legs: tn });

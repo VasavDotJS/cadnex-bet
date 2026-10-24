@@ -3,7 +3,6 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { ChevronRight } from 'lucide-react';
 import { memo, useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { leagueById } from '../data/leagues';
 import type { EventPublic, Market } from '../engine/types';
 import { mainMarket, useLive } from '../store/live';
 import { Crest } from './Crest';
@@ -31,7 +30,7 @@ export function EventStatus({ ev, now }: { ev: EventPublic; now: number }) {
         <LiveDot /> <span className="num">{ev.clock}</span>
       </span>
     );
-  if (ev.status === 'FINISHED') return <span className="text-[12px] text-mute">{ev.result?.void ? 'Void' : ev.sport === 'basketball' || ev.sport === 'tennis' ? 'Final' : 'FT'}</span>;
+  if (ev.status === 'FINISHED') return <span className="text-[12px] text-mute">{ev.result?.void ? ev.period : ev.sport === 'football' ? 'FT' : ev.sport === 'cricket' ? 'Result' : 'Final'}</span>;
   const ms = ev.startTime - now;
   if (ms < 3_600_000) return <span className="num text-[12px] text-mute">Starts in {countdown(ms)}</span>;
   return <span className="num text-[12px] text-mute">{kickoffLabel(ev.startTime, now)}</span>;
@@ -49,7 +48,7 @@ export const MatchRow = memo(function MatchRow({ id, showLeague = false }: { id:
       <Link to={`/event/${ev.id}`} className="flex min-w-0 flex-1 flex-col gap-2" aria-label={`${ev.home.name} v ${ev.away.name}`}>
         <div className="flex items-center gap-2">
           <EventStatus ev={ev} now={now} />
-          {showLeague && <span className="truncate text-[12px] text-mute">· {leagueById(ev.leagueId).name}</span>}
+          {showLeague && <span className="truncate text-[12px] text-mute">· {ev.leagueName}</span>}
         </div>
         {[0, 1].map((i) => {
           const p = i === 0 ? ev.home : ev.away;
@@ -112,7 +111,7 @@ export const LiveCard = memo(function LiveCard({ id }: { id: string }) {
       </AnimatePresence>
       <Link to={`/event/${ev.id}`} className="relative flex flex-col">
         <div className="flex items-center justify-between">
-          <span className="truncate text-[12px] text-mute">{leagueById(ev.leagueId).name}</span>
+          <span className="truncate text-[12px] text-mute">{ev.leagueName}</span>
           <span className="inline-flex items-center gap-1.5 text-[12px] font-medium text-down"><LiveDot /><span className="num">{ev.clock}</span></span>
         </div>
         <div className="mt-4 grid grid-cols-[1fr_auto_1fr] items-center gap-2">
