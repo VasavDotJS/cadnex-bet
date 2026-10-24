@@ -233,6 +233,7 @@ cadnex-bet/
 │   ├── data/                  # Competition catalogue, club ratings
 │   ├── db/                    # Dexie schema
 │   ├── lib/                   # Money, odds, currencies, crypto
+│   ├── admin/                 # Private admin panel (2FA, audited actions)
 │   ├── cloud/                 # Supabase client & device ⇄ cloud sync
 │   ├── pwa/                   # Service worker registration & install prompt
 │   ├── share/                 # Animated story renderer, MP4 export, share links
