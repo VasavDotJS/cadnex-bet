@@ -1,14 +1,14 @@
 /** My Bets: open, cash-out-able and settled bets with leg-by-leg detail. */
 import { AnimatePresence, motion } from 'framer-motion';
 import { CdnxMark } from '../../components/Brand';
-import { ChevronDown, ReceiptText } from 'lucide-react';
-import { useMemo, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { ChevronDown, ReceiptText, Share2 } from 'lucide-react';
+import { useEffect, useMemo, useState } from 'react';
+import { Link, useSearchParams } from 'react-router-dom';
 import type { BetRow } from '../../db/db';
 import type { EventPublic } from '../../engine/types';
 import { Crest } from '../../components/Crest';
 import { scoreOf } from '../../components/match';
-import { spring } from '../../components/motion';
+import { press, spring } from '../../components/motion';
 import { useOddsFmt } from '../../components/OddsButton';
 import { Sheet } from '../../components/Sheet';
 import { Empty, LiveDot, Pill, Tabs, TwoTone } from '../../components/ui';
@@ -19,6 +19,7 @@ import { findSelection, useLive } from '../../store/live';
 import { useSession } from '../../store/session';
 import { useUi } from '../../store/ui';
 import { leagueById } from '../../data/leagues';
+import { useShare } from '../../share/ShareStory';
 
 const RESULT_LABEL: Record<LegResult, string> = { PENDING: 'Open', WON: 'Won', LOST: 'Lost', VOID: 'Void', PUSH: 'Push', HALF_WON: 'Half won', HALF_LOST: 'Half lost' };
 
@@ -128,8 +129,23 @@ export function Receipt({ bet, open, onClose }: { bet: BetRow; open: boolean; on
         </div>
         <p className="relative mt-5 text-[11px] text-white/35">{user?.username} · {new Date(bet.placedAt).toLocaleString()} · Virtual funds</p>
       </div>
-      <p className="mt-3 text-center text-[12.5px] text-mute">Take a screenshot to share this receipt.</p>
+      <Pill tone="lime" size="lg" className="mt-4 w-full" onClick={() => { onClose(); setTimeout(() => useShare.getState().open({ kind: 'bet', betId: bet.id }), 250); }}><Share2 size={17} />Share as a story</Pill>
     </Sheet>
+  );
+}
+
+/** Opens the animated story share for a bet. Winners get the glowing version. */
+function ShareButton({ betId, won }: { betId: string; won: boolean }) {
+  return (
+    <motion.button
+      whileTap={press}
+      onClick={() => useShare.getState().open({ kind: 'bet', betId })}
+      aria-label="Share as a story"
+      className={`relative inline-flex h-9 shrink-0 items-center gap-1.5 overflow-hidden rounded-full px-3.5 text-[13px] font-medium ${won ? 'bg-lime/15 text-up' : 'bg-surface2 text-ink'}`}
+    >
+      {won && <motion.span className="pointer-events-none absolute inset-y-0 w-8 -skew-x-12 bg-white/25" initial={{ left: '-30%' }} animate={{ left: '130%' }} transition={{ duration: 1.6, repeat: Infinity, repeatDelay: 2.4, ease: 'easeInOut' }} />}
+      <Share2 size={14} />Share
+    </motion.button>
   );
 }
 
@@ -196,10 +212,11 @@ function BetCard({ bet }: { bet: BetRow }) {
         )}
       </AnimatePresence>
       <div className="flex items-center justify-between gap-3 border-t hair px-4 py-3">
-        <div>
+        <div className="min-w-0 flex-1">
           <p className="text-[12px] text-mute">{isOpen ? 'Potential return' : 'Returned'}</p>
           <p className={`num text-[17px] font-medium ${bet.status === 'WON' || bet.status === 'CASHED_OUT' ? 'text-up' : ''}`}>{formatMoney(isOpen ? BigInt(bet.potentialReturnMinor) : ret, bet.currency)}</p>
         </div>
+        <ShareButton betId={bet.id} won={bet.status === 'WON' || bet.status === 'CASHED_OUT'} />
         {isOpen && bet.type !== 'SYSTEM' && (
           <Pill tone={value ? 'primary' : 'soft'} size="sm" disabled={!value} onClick={() => setCashing(true)} className="min-w-[132px]">
             {value ? <>Cash out <span className="num">{formatMoney(value, bet.currency, { compact: true })}</span></> : 'Cash out paused'}
@@ -214,6 +231,14 @@ function BetCard({ bet }: { bet: BetRow }) {
 
 export function MyBets() {
   const bets = useSession((s) => s.bets);
+  // /bets?share=<id>: arrived from "Share" right after placing a bet
+  const [params, setParams] = useSearchParams();
+  const shareId = params.get('share');
+  useEffect(() => {
+    if (!shareId || !bets.some((b) => b.id === shareId)) return;
+    useShare.getState().open({ kind: 'bet', betId: shareId });
+    setParams({}, { replace: true });
+  }, [shareId, bets, setParams]);
   const events = useLive((s) => s.events);
   const [tab, setTab] = useState<'open' | 'cashout' | 'settled'>('open');
   const open = bets.filter((b) => b.status === 'OPEN' || b.status === 'PARTIALLY_CASHED_OUT');

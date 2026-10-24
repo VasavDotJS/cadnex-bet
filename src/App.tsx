@@ -25,6 +25,8 @@ import { LiveCentre, Sports } from './features/sports/Sports';
 import { WalletPage } from './features/wallet/Wallet';
 import { convertMinor, formatMoney } from './lib/money';
 import { startPwa } from './pwa/install';
+import { ShareStorySheet } from './share/ShareStory';
+import { SharedSlip } from './share/SharedSlip';
 import { markReady } from './splash/ready';
 import { useSession } from './store/session';
 import { useUi } from './store/ui';
@@ -137,6 +139,7 @@ function AppRoutes() {
         <Route path="/notifications" element={<Protected><Page><NotificationsPage /></Page></Protected>} />
         <Route path="/responsible" element={<Page><Responsible /></Page>} />
         <Route path="/help" element={<Page><Help /></Page>} />
+        <Route path="/s/:user/:legs" element={<Page><SharedSlip /></Page>} />
         <Route path="*" element={<Page><NotFound /></Page>} />
       </Routes>
     </AnimatePresence>
@@ -166,6 +169,7 @@ export function App() {
         <FlyingChip />
         <Celebration />
         <InstallSheet />
+        <ShareStorySheet />
         <Toasts />
       </HashRouter>
     </ErrorBoundary>

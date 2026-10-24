@@ -36,6 +36,7 @@ Everything a player stakes is virtual. There are no deposits, no withdrawals and
 | **Financial Integrity** | Every amount is a `BigInt` count of minor units across 56 fiat and crypto currencies, and every balance change writes an immutable ledger entry. |
 | **Responsible Gaming** | Enforced deposit, loss, stake and single-bet limits, reality checks, breaks and self-exclusion. |
 | **Installable App** | Add it to the home screen on Android, iPhone, iPad and desktop. It opens full screen, has its own icon and launch screen, and still opens with no connection. |
+| **Story Sharing** | Turn any bet or slip into a 6-second animated 9:16 video, made on the phone, and post it to Instagram Stories or WhatsApp Status. A QR code and link let friends copy the picks into their own slip. |
 | **Cloud Accounts** | Sign up once and log in from any phone or computer. Logins run on Supabase Auth; wallet, bets, history and settings sync to Postgres with row level security, and update live across a user's devices. |
 | **Light Infrastructure** | One Next.js app on Vercel. Edge caching means all visitors share a handful of upstream requests. |
 
@@ -234,6 +235,7 @@ cadnex-bet/
 │   ├── lib/                   # Money, odds, currencies, crypto
 │   ├── cloud/                 # Supabase client & device ⇄ cloud sync
 │   ├── pwa/                   # Service worker registration & install prompt
+│   ├── share/                 # Animated story renderer, MP4 export, share links
 │   ├── splash/                # Liquid launch screen (WebGL)
 │   ├── services/              # Auth, wallet, bets, stats, rewards
 │   └── store/                 # Zustand stores
