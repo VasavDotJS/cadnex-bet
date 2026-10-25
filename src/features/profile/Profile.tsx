@@ -1,8 +1,9 @@
 /** Profile, statistics and settings. */
 import { motion } from 'framer-motion';
-import { ChevronRight, Download, LogOut, RefreshCw, ShieldCheck, Trash2 } from 'lucide-react';
+import { ChevronRight, Download, LogOut, RefreshCw, ShieldCheck, Sparkles, Trash2 } from 'lucide-react';
 import { useCanInstall, useInstall } from '../../pwa/install';
 import { adminApi } from '../../admin/api';
+import { useOpenWrapped } from '../../wrapped/Wrapped';
 import { useSync } from '../../cloud/sync';
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
@@ -55,6 +56,7 @@ export function Profile() {
   const [pwf, setPwf] = useState({ current: '', next: '' });
   const [err, setErr] = useState('');
   const canInstall = useCanInstall();
+  const openWrapped = useOpenWrapped();
   // only shown to admins; the panel itself is still guarded by the database and a 2FA code
   const [isAdmin, setIsAdmin] = useState(false);
   useEffect(() => { adminApi.whoami().then((w) => setIsAdmin(!!w.admin), () => setIsAdmin(false)); }, [user.id]);
@@ -127,6 +129,8 @@ export function Profile() {
 
       <section className="overflow-hidden rounded-card bg-surface">
         {[
+          { label: 'Your week, wrapped', on: () => openWrapped('week'), icon: <Sparkles size={17} strokeWidth={1.5} className="text-lavender" /> },
+          { label: 'Your month, wrapped', on: () => openWrapped('month'), icon: <Sparkles size={17} strokeWidth={1.5} className="text-lavender" /> },
           { label: 'Edit profile', on: () => { setErr(''); setEdit(true); } },
           { label: 'Change password', on: () => { setErr(''); setPw(true); } },
           { label: 'Settings', to: '/settings' },

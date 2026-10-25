@@ -18,6 +18,7 @@ import { useSlip } from '../../store/slip';
 import { useUi } from '../../store/ui';
 import { DemoBadge } from '../shell/Shell';
 import { InstallBanner } from '../install/Install';
+import { WrappedBanner } from '../../wrapped/Wrapped';
 import { useUnread } from '../notifications/Notifications';
 
 function greeting(): string {
@@ -160,6 +161,7 @@ export function Home() {
 
       <div className="-mt-4 flex flex-col gap-5">
         <DailyStrip />
+        <WrappedBanner />
         <InstallBanner />
         <div className="px-4 md:px-0">
           <Tabs id="homeseg" tabs={[{ id: 'sports', label: 'Sports' }, { id: 'live', label: 'Live', count: liveIds.length }]} value={seg} onChange={setSeg} />

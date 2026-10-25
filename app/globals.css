@@ -302,3 +302,9 @@ input[type='date']::-webkit-calendar-picker-indicator {
 @keyframes cdnx-fade {
   from { opacity: 0; }
 }
+
+/* ───────────── wrapped ───────────── */
+@keyframes wrapped-fill {
+  from { width: 0%; }
+  to { width: 100%; }
+}
