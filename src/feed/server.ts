@@ -44,9 +44,16 @@ async function getJson(url: string, ttl: number): Promise<{ ok: boolean; status:
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const memo = new Map<string, { at: number; json: any }>();
 
+/** Optional hook to report upstream failures (the money Edge Function logs them). */
+let reportUpstream: ((url: string, error: string) => void) | null = null;
+export function onUpstreamError(f: (url: string, error: string) => void): void {
+  reportUpstream = f;
+}
+
 /** On an upstream error, serve the last good copy for up to 2 minutes rather than nothing. */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function stale(url: string, t0: number, status: number, error: string): { ok: boolean; status: number; json: any; ms: number; error?: string } {
+  reportUpstream?.(url, error);
   const hit = memo.get(url);
   if (hit && t0 - hit.at < 120_000) return { ok: true, status: 200, json: hit.json, ms: Date.now() - t0, error: `${error} (served cached copy)` };
   return { ok: false, status, json: null, ms: Date.now() - t0, error };

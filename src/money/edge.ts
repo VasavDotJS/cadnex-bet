@@ -4,7 +4,7 @@
  * money handler with Postgres (through the service role) and the live match feed.
  */
 import type { BetRow, LedgerRow, SettingsRow, WalletRow } from '../db/db';
-import { loadDetail } from '../feed/server';
+import { loadDetail, onUpstreamError } from '../feed/server';
 import type { Change } from './core';
 import type { RgSettings } from './limits';
 import { ConflictError, handleMoney, Store } from './server';
@@ -83,7 +83,14 @@ const store: Store = {
   },
 };
 
-const feed = { event: (id: string) => loadDetail(id) };
+onUpstreamError((url, error) => console.warn('upstream failed', url.replace(/^https:\/\/[^/]+/, ''), error));
+const feed = {
+  event: async (id: string) => {
+    const ev = await loadDetail(id);
+    if (!ev) console.warn('match not found', id);
+    return ev;
+  },
+};
 
 function newId(prefix: string): string {
   const b = new Uint8Array(10);
