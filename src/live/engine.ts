@@ -403,7 +403,7 @@ export class LiveEngine {
 }
 
 function participant(s: FeedEvent['home']) {
-  return { id: s.id, name: s.name, short: s.short, colors: s.colors };
+  return { id: s.id, name: s.name, short: s.short, colors: s.colors, logo: s.logo };
 }
 
 function periodLabel(ev: FeedEvent): string {

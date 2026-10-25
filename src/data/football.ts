@@ -1,5 +1,5 @@
 /**
- * Football clubs. Real names and colours, no official logos (crests are generated monograms).
+ * Football clubs: real names and colours. In-app crests use the official logo from the live feed when there is one.
  * Ratings are CADNEX's own simulation figures. Rosters are easy to edit: "Name weight" pairs,
  * where weight is the player's relative chance of scoring a given goal.
  */

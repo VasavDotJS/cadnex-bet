@@ -18,6 +18,7 @@ import { useSlip } from '../store/slip';
 import { useUi } from '../store/ui';
 import { shareUrl } from './link';
 import { Assets, drawStory, DURATION, H, loadAssets, Story, StoryOptions, storyFromBet, storyFromSlip, W } from './story';
+import { preloadLogos } from './logos';
 import { drawMatchStory, matchStoryFrom } from './matchStory';
 import { makeStoryFile, StoryFile } from './video';
 
@@ -32,6 +33,7 @@ interface Card {
   amounts: boolean;
   caption: string;
   footnote: string;
+  logos: (string | undefined)[];
   draw(ctx: CanvasRenderingContext2D, t: number, a: Assets, o: StoryOptions): void;
 }
 
@@ -47,6 +49,7 @@ function betCard(story: Story): Card {
     glow: won ? LIMEGLOW : VIOLET,
     amounts: !!story.stake,
     caption: `Copy my bet on CADNEX 👉 ${story.link}`,
+    logos: story.legs.flatMap((l) => [l.home.logo, l.away.logo]),
     footnote: 'Friends who scan the code or open the link get your picks in their own slip, at the current prices.',
     draw: (ctx, t, a, o) => drawStory(ctx, t, story, a, o),
   };
@@ -97,6 +100,7 @@ function useCard(source: Source | null): Card | null {
         amounts: false,
         caption: m.phase === 'LIVE' ? `${title} is live, ${m.score?.join('–')} 🔴 Follow it on CADNEX 👉 ${url}` : m.phase === 'FT' ? `${title} finished ${m.score?.join('–')} ⚽ on CADNEX 👉 ${url}` : `${title} · ${m.date} ${m.time} 🔥 Get your picks in on CADNEX 👉 ${url}`,
         footnote: 'The code and link open this match on CADNEX, with live score and prices.',
+        logos: [m.home.logo, m.away.logo],
         draw: (ctx, t, a) => drawMatchStory(ctx, t, m, a),
       };
     }
@@ -204,7 +208,9 @@ export function ShareStorySheet() {
     setProgress(0);
     const snapshot = card;
     const o = opts;
-    const t = setTimeout(() => {
+    const t = setTimeout(async () => {
+      await preloadLogos(snapshot.logos);
+      if (gen.current !== my) return;
       void makeStoryFile((ctx, time) => snapshot.draw(ctx, time, assets, o), (p) => { if (gen.current === my) setProgress(p); }, snapshot.name)
         .then((f) => { if (gen.current === my) setFile(f); });
     }, 350);

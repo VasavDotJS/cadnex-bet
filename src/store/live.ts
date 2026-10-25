@@ -1,9 +1,11 @@
 /** Live sports state mirrored from the engine. Components subscribe by event id. */
 import { create } from 'zustand';
 import { registerLeague } from '../data/leagues';
+import { rememberLogos } from '../lib/logo';
 import type { EventPublic, FeedHealth, Market, Selection } from '../engine/types';
 
 function register(events: EventPublic[]): void {
+  rememberLogos(events.flatMap((e) => [e.home, e.away]));
   for (const e of events) if (e.leagueName) registerLeague({ id: e.leagueId, sport: e.sport, name: e.leagueName, short: e.leagueName.length > 14 ? e.leagueName.split(/[\s·]+/).map((w) => w[0]).join('').slice(0, 6) : e.leagueName });
 }
 

@@ -7,6 +7,7 @@ import { Link, useSearchParams } from 'react-router-dom';
 import type { BetRow } from '../../db/db';
 import type { EventPublic } from '../../engine/types';
 import { Crest } from '../../components/Crest';
+import { logoFor } from '../../lib/logo';
 import { scoreOf } from '../../components/match';
 import { press, spring } from '../../components/motion';
 import { useOddsFmt } from '../../components/OddsButton';
@@ -186,7 +187,7 @@ function BetCard({ bet }: { bet: BetRow }) {
                 const [sh, sa] = ev ? scoreOf(ev) : ['', ''];
                 return (
                   <Link key={l.selectionId} to={`/event/${l.eventId}`} className="flex items-center gap-3 rounded-[18px] bg-surface2 px-3 py-2.5">
-                    {ev ? <Crest p={ev.home} sport={ev.sport} size={24} /> : <span className="h-6 w-6 rounded-full bg-surface3" />}
+                    <Crest p={ev ? ev.home : { id: l.home, name: l.home, short: l.home.slice(0, 3).toUpperCase(), colors: ['#2A2A31', '#FFFFFF'], logo: logoFor(l.home) }} sport={ev?.sport ?? l.sport} size={24} />
                     <div className="min-w-0 flex-1">
                       <p className="truncate text-[13.5px] font-medium">{l.label} <span className="mono font-normal text-mute">{fmt(l.odds)}</span></p>
                       <p className="truncate text-[12px] text-mute">{l.marketName} · {l.home} v {l.away} · {leagueById(l.leagueId).short}</p>

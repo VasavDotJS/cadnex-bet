@@ -1,5 +1,10 @@
-/** Generated monogram crests in a team's colours. No official logos. */
+/**
+ * Team crests: the club's official logo when the feed has one, otherwise a monogram in the
+ * team's colours (tennis players, or if the logo can't load).
+ */
+import { useState } from 'react';
 import type { SportId } from '../data/types';
+import { logoSrc } from '../lib/logo';
 import type { Participant } from '../engine/types';
 
 function lum(hex: string): number {
@@ -22,7 +27,33 @@ export function monogram(p: Participant, sport: SportId): string {
   return s.length <= 3 ? s : s.slice(0, 3);
 }
 
+/** Logos that failed once aren't retried for the rest of the session. */
+const broken = new Set<string>();
+
 export function Crest({ p, sport, size = 40, className = '' }: { p: Participant; sport: SportId; size?: number; className?: string }) {
+  const [failed, setFailed] = useState(false);
+  if (p.logo && !failed && !broken.has(p.logo)) {
+    const logo = p.logo;
+    return (
+      <span className={`crest-logo inline-flex shrink-0 items-center justify-center ${className}`} style={{ width: size, height: size }}>
+        <img
+          src={logoSrc(logo, size)}
+          alt={`${p.name} logo`}
+          width={size}
+          height={size}
+          loading="lazy"
+          decoding="async"
+          draggable={false}
+          className="h-full w-full object-contain"
+          onError={() => { broken.add(logo); setFailed(true); }}
+        />
+      </span>
+    );
+  }
+  return <Monogram p={p} sport={sport} size={size} className={className} />;
+}
+
+function Monogram({ p, sport, size, className }: { p: Participant; sport: SportId; size: number; className: string }) {
   const [bg, fg0] = p.colors;
   const fg = contrast(bg, fg0) >= 2.4 ? fg0 : lum(bg) > 0.4 ? '#0B0B0D' : '#FFFFFF';
   const text = monogram(p, sport);

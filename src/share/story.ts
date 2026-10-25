@@ -12,6 +12,8 @@ import type { BetRow } from '../db/db';
 import type { EventPublic } from '../engine/types';
 import type { SlipSel } from '../store/slip';
 import type { SharedPick } from './link';
+import { logoFor } from '../lib/logo';
+import { drawContained, logoImage } from './logos';
 
 export const W = 1080;
 export const H = 1920;
@@ -25,8 +27,8 @@ export interface StoryLeg {
   odds: string;
   result: 'PENDING' | 'WON' | 'LOST' | 'VOID';
   live?: { score: string; clock: string };
-  home: { short: string; color: string };
-  away: { short: string; color: string };
+  home: { short: string; color: string; logo?: string };
+  away: { short: string; color: string; logo?: string };
 }
 
 export interface Story {
@@ -75,8 +77,8 @@ function legFrom(
     sub: `${l.marketName} · ${l.home} v ${l.away}`,
     odds: fmtOdds(l.odds),
     result: r,
-    home: { short: ev?.home.short?.slice(0, 3).toUpperCase() || shortOf(l.home), color: hex(ev?.home.colors?.[0], hue(l.home)) },
-    away: { short: ev?.away.short?.slice(0, 3).toUpperCase() || shortOf(l.away), color: hex(ev?.away.colors?.[0], hue(l.away)) },
+    home: { short: ev?.home.short?.slice(0, 3).toUpperCase() || shortOf(l.home), color: hex(ev?.home.colors?.[0], hue(l.home)), logo: ev?.home.logo ?? logoFor(l.home) },
+    away: { short: ev?.away.short?.slice(0, 3).toUpperCase() || shortOf(l.away), color: hex(ev?.away.colors?.[0], hue(l.away)), logo: ev?.away.logo ?? logoFor(l.away) },
   };
   if (r === 'PENDING' && ev?.status === 'LIVE') {
     const s = ev.scoreText ?? [String(ev.score[0]), String(ev.score[1])];
@@ -533,14 +535,30 @@ export function drawStory(ctx: CanvasRenderingContext2D, t: number, s: Story, a:
       ctx.fillStyle = 'rgba(255,255,255,0.06)';
       ctx.fillRect(rowX, y, rowW, 2);
     }
-    // crests: two overlapping discs in the team colours
+    // crests: the clubs' logos on glass discs, or two discs in the team colours
     const cy = y + rowH / 2;
-    const disc = (x: number, team: { short: string; color: string }) => {
+    const disc = (x: number, team: StoryLeg['home']) => {
       const R = 27 * f;
       ctx.beginPath();
       ctx.arc(x, cy, R + 4, 0, Math.PI * 2);
       ctx.fillStyle = '#16161B';
       ctx.fill();
+      const img = logoImage(team.logo);
+      if (img) {
+        ctx.beginPath();
+        ctx.arc(x, cy, R, 0, Math.PI * 2);
+        const bg = ctx.createRadialGradient(x, cy - R * 0.4, 0, x, cy, R);
+        bg.addColorStop(0, 'rgba(255,255,255,0.20)');
+        bg.addColorStop(1, 'rgba(255,255,255,0.07)');
+        ctx.fillStyle = bg;
+        ctx.fill();
+        ctx.save();
+        ctx.shadowColor = 'rgba(255,255,255,0.35)';
+        ctx.shadowBlur = 3;
+        drawContained(ctx, img, x, cy, R * 1.45);
+        ctx.restore();
+        return;
+      }
       ctx.beginPath();
       ctx.arc(x, cy, R, 0, Math.PI * 2);
       ctx.fillStyle = team.color;

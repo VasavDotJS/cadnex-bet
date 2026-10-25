@@ -32,7 +32,7 @@ export interface Wrapped {
   net: bigint; // returned − staked, for bets settled in the period
   sports: { id: SportId; n: number }[];
   topLeague: { id: string; n: number } | null;
-  team: { name: string; n: number } | null;
+  team: { name: string; n: number; logo?: string } | null;
   biggestWin: { profit: bigint; label: string; match: string; odds: number } | null;
   longestOdds: { odds: number; label: string } | null;
   bestStreak: number;

@@ -11,6 +11,8 @@ export interface FeedSide {
   name: string;
   short: string;
   colors: [string, string];
+  /** official logo on ESPN's CDN (teams only, not individual players) */
+  logo?: string;
   score: number;
   /** display text when the score isn't one number (cricket "185/6 (20 ov)") */
   scoreText?: string;

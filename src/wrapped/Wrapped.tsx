@@ -19,6 +19,8 @@ import { useLive } from '../store/live';
 import { useSession } from '../store/session';
 import { useUi } from '../store/ui';
 import { drawWrappedCard } from './card';
+import { logoFor, logoSrc } from '../lib/logo';
+import { preloadLogos } from '../share/logos';
 import { computeWrapped, Period, Wrapped } from './stats';
 
 export const useWrapped = create<{ period: Period | null; open(p: Period): void; close(): void }>((set) => ({
@@ -188,8 +190,12 @@ function buildSlides(w: Wrapped, user: string, teamHex: string | null, summary: 
       render: () => (
         <div className="flex h-full flex-col items-center justify-center px-7 text-center">
           <Rise><p className="text-[22px] text-white/80">Your team this {label}</p></Rise>
-          <motion.div initial={{ scale: 0.3, rotate: -20, opacity: 0 }} animate={{ scale: 1, rotate: 0, opacity: 1 }} transition={{ type: 'spring', stiffness: 160, damping: 14, delay: 0.25 }} className="my-8 flex h-[min(52vw,240px)] w-[min(52vw,240px)] items-center justify-center rounded-full text-[min(16vw,76px)] font-black tracking-tight shadow-[0_30px_80px_-20px_rgba(0,0,0,0.6)]" style={{ background: `radial-gradient(circle at 30% 25%, rgba(255,255,255,0.35), transparent 55%), ${teamHex}` }}>
-            {(team.name.includes(' ') ? team.name.split(' ').map((p) => p[0]).join('') : team.name).slice(0, 3).toUpperCase()}
+          <motion.div initial={{ scale: 0.3, rotate: -20, opacity: 0 }} animate={{ scale: 1, rotate: 0, opacity: 1 }} transition={{ type: 'spring', stiffness: 160, damping: 14, delay: 0.25 }} className={team.logo ? 'my-8 flex h-[min(56vw,260px)] w-[min(56vw,260px)] items-center justify-center' : 'my-8 flex h-[min(52vw,240px)] w-[min(52vw,240px)] items-center justify-center rounded-full text-[min(16vw,76px)] font-black tracking-tight shadow-[0_30px_80px_-20px_rgba(0,0,0,0.6)]'} style={team.logo ? undefined : { background: `radial-gradient(circle at 30% 25%, rgba(255,255,255,0.35), transparent 55%), ${teamHex}` }}>
+            {team.logo ? (
+              <img src={logoSrc(team.logo, 260)} alt={`${team.name} logo`} className="h-full w-full object-contain [filter:drop-shadow(0_0_1px_rgba(255,255,255,0.6))_drop-shadow(0_30px_40px_rgba(0,0,0,0.55))]" draggable={false} />
+            ) : (
+              (team.name.includes(' ') ? team.name.split(' ').map((p) => p[0]).join('') : team.name).slice(0, 3).toUpperCase()
+            )}
           </motion.div>
           <Rise d={0.45}><h2 className={`${big} text-[clamp(44px,13vw,84px)]`}>{team.name}</h2></Rise>
           <Rise d={0.65}><p className="mt-4 text-[18px] text-white/80">You backed them <b className="text-white">{team.n} times</b>. Ride or die.</p></Rise>
@@ -353,7 +359,7 @@ function Summary({ w, user, onReplay }: { w: Wrapped; user: string; onReplay: ()
   useEffect(() => {
     if (!assets) return;
     let live = true;
-    void makeStoryFile((ctx, t) => drawWrappedCard(ctx, t, w, assets, user), (p) => live && setProgress(p), `cadnex-wrapped-${w.period}`).then((f) => live && setFile(f));
+    void preloadLogos([w.team?.logo]).then(() => live && makeStoryFile((ctx, t) => drawWrappedCard(ctx, t, w, assets, user), (p) => live && setProgress(p), `cadnex-wrapped-${w.period}`).then((f) => live && setFile(f)));
     return () => { live = false; };
   }, [assets, w, user]);
   const share = async () => {
@@ -421,7 +427,16 @@ export function WrappedPlayer() {
   const [run, setRun] = useState(0);
   const holdRef = useRef<{ at: number } | null>(null);
 
-  const w = useMemo(() => (period && wallet ? computeWrapped(bets, period, wallet.currency) : null), [period, bets, wallet]);
+  const w = useMemo(() => {
+    const out = period && wallet ? computeWrapped(bets, period, wallet.currency) : null;
+    // the favourite team's official logo, from the live feed or remembered from earlier matches
+    if (out?.team) {
+      const name = out.team.name;
+      const ev = Object.values(useLive.getState().events).find((e) => e.home.name === name || e.away.name === name);
+      out.team.logo = (ev?.home.name === name ? ev.home.logo : ev?.away.logo) ?? logoFor(name);
+    }
+    return out;
+  }, [period, bets, wallet]);
   const teamHex = useMemo(() => (w?.team ? teamColor(w.team.name, events) : null), [w, events]);
   const slides = useMemo(() => (w ? buildSlides(w, user?.username ?? '', teamHex, <Summary w={w} user={user?.username ?? ''} onReplay={() => { setI(0); setRun((r) => r + 1); }} />) : []), [w, user, teamHex]);
   const last = slides.length - 1;
