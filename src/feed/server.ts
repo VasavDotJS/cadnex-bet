@@ -12,7 +12,7 @@ const SITE_WEB = 'https://site.web.api.espn.com/apis/site/v2/sports';
 const CRICKET_HEADER = 'https://site.web.api.espn.com/apis/personalized/v2/scoreboard/header?sport=cricket&region=in&tz=Asia/Calcutta&lang=en';
 
 /** ESPN refuses some runtimes' default user agent (Supabase Edge gets 403), so say who we are. */
-const USER_AGENT = 'Mozilla/5.0 (compatible; CADNEX/1.0; +https://cadnex.vercel.app)';
+const USER_AGENT = 'Mozilla/5.0 (compatible; CADNEX/1.0)'; // ESPN also refuses agents containing a URL
 
 const LIVE_TTL = 15;
 const FUTURE_TTL = 600;
