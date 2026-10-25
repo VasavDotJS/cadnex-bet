@@ -1,28 +1,48 @@
 /**
- * Lightweight per-IP rate limiting for the API routes. Counts live in each serverless
- * instance's memory, so this blunts floods from one client (and protects the upstream ESPN
- * quota) without any paid service. Vercel's own firewall sits in front for the rest.
+ * Per-visitor rate limiting for the API routes, shared by every server instance through
+ * Vercel's Runtime Cache (in-memory on a laptop). A quick local count answers first, so
+ * floods are cut off without touching the shared cache on every request.
  */
+import { getCache, ipAddress } from '@vercel/functions';
 import { NextRequest, NextResponse } from 'next/server';
 
-const buckets = new Map<string, { n: number; reset: number }>();
+const local = new Map<string, { n: number; reset: number }>();
 
 export function clientIp(req: NextRequest): string {
-  const fwd = req.headers.get('x-forwarded-for');
-  return (fwd ? fwd.split(',')[0] : req.headers.get('x-real-ip') ?? 'unknown').trim().slice(0, 64);
+  // Vercel sets this from the real connection; a client can't forge it
+  return (ipAddress(req) ?? req.headers.get('x-real-ip') ?? 'unknown').trim().slice(0, 64);
 }
 
-/** Returns a 429 response when `ip` has made more than `limit` calls to `route` in the window. */
-export function rateLimit(req: NextRequest, route: string, limit: number, windowMs = 60_000): NextResponse | null {
-  const now = Date.now();
-  const key = `${route}|${clientIp(req)}`;
-  const b = buckets.get(key);
+function tooMany(retryS: number): NextResponse {
+  return NextResponse.json({ error: 'Too many requests' }, { status: 429, headers: { 'Retry-After': String(Math.max(1, retryS)), 'Cache-Control': 'no-store' } });
+}
+
+function countLocal(key: string, now: number, windowMs: number): { n: number; reset: number } {
+  let b = local.get(key);
   if (!b || now > b.reset) {
-    buckets.set(key, { n: 1, reset: now + windowMs });
-    if (buckets.size > 5000) for (const [k, v] of buckets) if (now > v.reset) buckets.delete(k);
-    return null;
+    b = { n: 0, reset: now + windowMs };
+    local.set(key, b);
+    if (local.size > 5000) for (const [k, v] of local) if (now > v.reset) local.delete(k);
   }
-  if (++b.n <= limit) return null;
-  const retry = Math.ceil((b.reset - now) / 1000);
-  return NextResponse.json({ error: 'Too many requests' }, { status: 429, headers: { 'Retry-After': String(retry), 'Cache-Control': 'no-store' } });
+  b.n++;
+  return b;
+}
+
+/** Returns a 429 response when this visitor has made more than `limit` calls to `route` in the window. */
+export async function rateLimit(req: NextRequest, route: string, limit: number, windowMs = 60_000): Promise<NextResponse | null> {
+  const now = Date.now();
+  const window = Math.floor(now / windowMs);
+  const key = `${route}|${clientIp(req)}|${window}`;
+  const mine = countLocal(key, now, windowMs);
+  if (mine.n > limit) return tooMany(Math.ceil((mine.reset - now) / 1000));
+  // the shared count across instances (best effort: a missing cache never blocks anyone)
+  try {
+    const cache = getCache({ namespace: 'cdnx-rl' });
+    const seen = Number((await cache.get(key)) ?? 0) + 1;
+    await cache.set(key, seen, { ttl: Math.ceil(windowMs / 1000) + 5, name: '' });
+    if (seen > limit) return tooMany(Math.ceil(((window + 1) * windowMs - now) / 1000));
+  } catch {
+    /* no shared cache here: the local count still applies */
+  }
+  return null;
 }

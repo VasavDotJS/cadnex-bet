@@ -11,8 +11,10 @@
 import Dexie from 'dexie';
 import { create } from 'zustand';
 import { db } from '../db/db';
+import { MoneyResult, setRemoteMoney } from '../money/remote';
 import { cloud } from './client';
-import { MAP, SYNCED, SyncedTable } from './tables';
+import { callMoney } from './money';
+import { MAP, SERVER_OWNED, SYNCED, SyncedTable } from './tables';
 
 type Status = 'idle' | 'syncing' | 'synced' | 'offline' | 'error';
 
@@ -23,6 +25,8 @@ const OVERLAP_MS = 15_000; // re-read a little behind the cursor so late commits
 const REMOTE = 'cloud';
 
 let userId: string | null = null;
+/** 'server': wallets, ledger and bets are written only by the money function (the app). */
+let moneyMode: 'server' | 'local' = 'server';
 let outbox: Record<SyncedTable, Map<string, number>> = emptyOutbox();
 let seq = 0;
 let hooksInstalled = false;
@@ -85,6 +89,7 @@ export function pendingCount(): number {
 
 function track(table: SyncedTable, row: { userId?: string } | undefined) {
   if (!userId || !row || row.userId !== userId) return;
+  if (moneyMode === 'server' && SERVER_OWNED.includes(table)) return; // only the server writes these
   const tx = Dexie.currentTransaction as unknown as { source?: string } | null;
   if (tx?.source === REMOTE) return; // this write came from the cloud
   outbox[table].set(MAP[table].key(row), ++seq);
@@ -152,6 +157,20 @@ export function flush(): Promise<void> {
     }
   })();
   return flushing;
+}
+
+/** Keep what the money function returned (wallet, ledger entries, bets) on the device. */
+export async function storeServer(r: MoneyResult): Promise<void> {
+  const uid = userId;
+  if (!uid) return;
+  const mine = <T extends { userId: string }>(rows: T[]) => rows.filter((x) => x.userId === uid);
+  await db.transaction('rw', [db.wallets, db.ledger, db.bets], async (tx) => {
+    (tx as unknown as { source: string }).source = REMOTE;
+    if (r.wallet && r.wallet.userId === uid) await db.wallets.put(r.wallet);
+    if (r.ledger.length) await db.ledger.bulkPut(mine(r.ledger));
+    if (r.bets.length) await db.bets.bulkPut(mine(r.bets));
+  });
+  emitChange();
 }
 
 /** Write rows that came from the cloud into the device, unless a newer local change waits. */
@@ -228,11 +247,19 @@ const onOnline = () => { if (userId) { void flush(); void pull().catch(() => {})
  * the full download and throws if the cloud can't be reached; otherwise it returns at once
  * and syncs in the background.
  */
-export async function startSync(uid: string, opts: { fresh: boolean }): Promise<void> {
+export async function startSync(uid: string, opts: { fresh: boolean; money?: 'server' | 'local' }): Promise<void> {
   if (userId && userId !== uid) await stopSync();
   installHooks();
   userId = uid;
+  moneyMode = opts.money ?? 'server';
+  setRemoteMoney(moneyMode === 'server' ? callMoney : null, moneyMode === 'server' ? storeServer : null);
   loadOutbox(uid);
+  // anything an older app version queued for the money tables is the server's job now
+  if (moneyMode === 'server') {
+    let dropped = false;
+    for (const t of SERVER_OWNED) if (outbox[t].size) { outbox[t].clear(); dropped = true; }
+    if (dropped) saveOutbox();
+  }
   if (opts.fresh) {
     await pull(true);
   } else {
@@ -270,6 +297,7 @@ export async function stopSync(waitMs = 4000): Promise<{ clean: boolean }> {
   }
   userId = null;
   outbox = emptyOutbox();
+  setRemoteMoney(null, null);
   useSync.setState({ status: 'idle', lastSync: null });
   return { clean };
 }

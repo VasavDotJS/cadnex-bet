@@ -6,7 +6,7 @@ export const dynamic = 'force-dynamic';
 
 /** Quick check that every upstream feed answers and parses. Open /api/health in a browser. */
 export async function GET(req: NextRequest) {
-  const limited = rateLimit(req, 'health', 20);
+  const limited = await rateLimit(req, 'health', 20);
   if (limited) return limited;
   const feed = await loadFeed();
   const bySport: Record<string, { total: number; live: number }> = {};

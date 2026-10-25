@@ -6,6 +6,8 @@ import type { BetRow, LedgerRow, NotificationRow, SettingsRow, WalletRow } from 
 
 export const SYNCED = ['wallets', 'ledger', 'bets', 'settings', 'notifications'] as const;
 export type SyncedTable = (typeof SYNCED)[number];
+/** Written only by the server's money function; the device downloads them. */
+export const SERVER_OWNED: readonly SyncedTable[] = ['wallets', 'ledger', 'bets'];
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 type Remote = Record<string, any>;

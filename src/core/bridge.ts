@@ -7,6 +7,7 @@ import { startEngine, EngineHandle } from '../engine/client';
 import type { EventPublic, FromEngine } from '../engine/types';
 import { parseEventKey } from '../feed/types';
 import { formatMoney } from '../lib/money';
+import { remoteMoney, serverMoney } from '../money/remote';
 import { betService, shortRef } from '../services/betService';
 import { findSelection, useLive } from '../store/live';
 import { useSession } from '../store/session';
@@ -16,6 +17,23 @@ let handle: EngineHandle | null = null;
 let ready = false;
 let settling = false;
 let settleQueued = false;
+
+/** Notification and toast for bets that just reached a result. */
+async function announce(settled: import('../db/db').BetRow[], meId: string): Promise<void> {
+  for (const b of settled) {
+    const ret = BigInt(b.returnMinor ?? '0');
+    const title = b.status === 'WON' ? `Won ${formatMoney(ret, b.currency)}` : b.status === 'VOID' ? 'Bet voided, stake returned' : 'Bet lost';
+    const body = `${b.legs[0].home} v ${b.legs[0].away}${b.legs.length > 1 ? ` +${b.legs.length - 1} more` : ''} · Ref ${shortRef(b.id)}`;
+    await db.notifications.put({ id: `n_settle_${b.id}`, userId: b.userId, kind: 'settled', title, body, link: '/bets', createdAt: Date.now(), read: false });
+    if (b.userId === meId && useSession.getState().settings?.notifySettled !== false) {
+      const ui = useUi.getState();
+      if (b.status === 'WON') { ui.toast({ tone: 'win', title, body, action: { label: 'View', to: '/bets' } }); ui.win(); }
+      else if (b.status === 'LOST' && ret === 0n) { ui.toast({ tone: 'loss', title, body }); ui.loss(); }
+      else ui.toast({ tone: 'neutral', title, body });
+    }
+  }
+  await useSession.getState().refreshAll();
+}
 
 async function settleNow(): Promise<void> {
   if (settling) { settleQueued = true; return; }
@@ -37,19 +55,7 @@ async function settleNow(): Promise<void> {
       return f.selection.result === 'PENDING' ? null : f.selection.result;
     }, me.id);
     if (settled.length) {
-      for (const b of settled) {
-        const ret = BigInt(b.returnMinor ?? '0');
-        const title = b.status === 'WON' ? `Won ${formatMoney(ret, b.currency)}` : b.status === 'VOID' ? 'Bet voided, stake returned' : 'Bet lost';
-        const body = `${b.legs[0].home} v ${b.legs[0].away}${b.legs.length > 1 ? ` +${b.legs.length - 1} more` : ''} · Ref ${shortRef(b.id)}`;
-        await db.notifications.put({ id: `n_settle_${b.id}`, userId: b.userId, kind: 'settled', title, body, link: '/bets', createdAt: Date.now(), read: false });
-        if (b.userId === me.id && useSession.getState().settings?.notifySettled !== false) {
-          const ui = useUi.getState();
-          if (b.status === 'WON') { ui.toast({ tone: 'win', title, body, action: { label: 'View', to: '/bets' } }); ui.win(); }
-          else if (b.status === 'LOST' && ret === 0n) { ui.toast({ tone: 'loss', title, body }); ui.loss(); }
-          else ui.toast({ tone: 'neutral', title, body });
-        }
-      }
-      await useSession.getState().refreshAll();
+      await announce(settled, me.id);
     } else if (changed) {
       // legs may have updated (e.g. one leg of a parlay won); refresh quietly
       await useSession.getState().refreshBets();
@@ -59,6 +65,25 @@ async function settleNow(): Promise<void> {
   } finally {
     settling = false;
     if (settleQueued) { settleQueued = false; void settleNow(); }
+  }
+}
+
+/**
+ * Once per app start, ask the server to look at every open bet: it settles anything that
+ * finished while the app was closed, including matches this device no longer follows.
+ */
+let swept = false;
+async function sweep(): Promise<void> {
+  const me = useSession.getState().user;
+  if (swept || !me || !remoteMoney()) return;
+  swept = true;
+  try {
+    const r = await serverMoney('settle', {});
+    const done = new Set(r.settled ?? []);
+    if (done.size) await announce(r.bets.filter((b) => done.has(b.id)), me.id);
+    else if (r.bets.length) await useSession.getState().refreshAll();
+  } catch {
+    swept = false; // try again next time
   }
 }
 
@@ -84,7 +109,7 @@ function onMessage(m: FromEngine): void {
     case 'ready':
       ready = true;
       useLive.getState().setReady(m.events, handle?.mode ?? 'worker');
-      void settleNow();
+      void sweep().then(() => settleNow());
       break;
     case 'update': {
       const prev = useLive.getState().events;

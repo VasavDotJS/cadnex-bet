@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from 'next';
 import { GeistMono } from 'geist/font/mono';
 import { GeistSans } from 'geist/font/sans';
+import { headers } from 'next/headers';
 import type { ReactNode } from 'react';
 import './globals.css';
 
@@ -51,11 +52,13 @@ export const viewport: Viewport = {
  */
 const KEEP_INSTALL_PROMPT = `window.__cdnxBip=null;addEventListener('beforeinstallprompt',function(e){e.preventDefault();window.__cdnxBip=e;dispatchEvent(new Event('cdnx-bip'))});addEventListener('appinstalled',function(){window.__cdnxBip=null;window.__cdnxInstalled=true;dispatchEvent(new Event('cdnx-installed'))});`;
 
-export default function RootLayout({ children }: { children: ReactNode }) {
+export default async function RootLayout({ children }: { children: ReactNode }) {
+  // set per request by proxy.ts; reading it also makes every page render per request
+  const nonce = (await headers()).get('x-nonce') ?? undefined;
   return (
     <html lang="en" data-theme="dark" className={`${GeistSans.variable} ${GeistMono.variable}`} suppressHydrationWarning>
       <head>
-        <script dangerouslySetInnerHTML={{ __html: KEEP_INSTALL_PROMPT }} />
+        <script nonce={nonce} dangerouslySetInnerHTML={{ __html: KEEP_INSTALL_PROMPT }} />
       </head>
       <body>{children}</body>
     </html>

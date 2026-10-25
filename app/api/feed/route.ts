@@ -5,7 +5,7 @@ import { loadFeed } from '../../../src/feed/server';
 export const dynamic = 'force-dynamic';
 
 export async function GET(req: NextRequest) {
-  const limited = rateLimit(req, 'feed', 120);
+  const limited = await rateLimit(req, 'feed', 120);
   if (limited) return limited;
   const feed = await loadFeed();
   return NextResponse.json(feed, {

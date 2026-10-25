@@ -5,9 +5,12 @@
  */
 import type { AuthError as SbAuthError, User } from '@supabase/supabase-js';
 import { cloud, setRemember } from '../cloud/client';
-import { db, SettingsRow } from '../db/db';
-import { currency, isCurrency } from '../lib/currencies';
-import { convertMinor, pow10 } from '../lib/money';
+import { db, SettingsRow, uid } from '../db/db';
+import { isCurrency } from '../lib/currencies';
+import { passwordProblem } from '../lib/pwned';
+import { openWallet } from '../money/core';
+import { remoteMoney, serverMoney } from '../money/remote';
+import { commitLocal } from './walletService';
 import { stamp } from '../lib/time';
 
 export class AuthError extends Error {
@@ -42,15 +45,7 @@ export function defaultSettings(userId: string): SettingsRow {
   };
 }
 
-/** A friendly starting balance worth about 1,000 USD, rounded to two significant figures. */
-export function startingBalance(code: string): bigint {
-  const raw = convertMinor(100_000n, 'USD', code); // 1,000.00 USD
-  const unitsWhole = Number(raw / pow10(currency(code).decimals));
-  if (unitsWhole < 1) return raw; // crypto: keep exact
-  const mag = Math.pow(10, Math.floor(Math.log10(unitsWhole)) - 1);
-  const nice = Math.round(unitsWhole / mag) * mag;
-  return BigInt(nice) * pow10(currency(code).decimals);
-}
+export { startingBalance } from '../money/core';
 
 const USERNAME = /^[A-Za-z0-9_.]{3,20}$/;
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
@@ -125,7 +120,8 @@ export const authService = {
     const email = input.email.trim();
     if (!USERNAME.test(username)) throw new AuthError('username', 'Use 3–20 letters, numbers, dots or underscores.');
     if (!EMAIL.test(email)) throw new AuthError('email', 'Enter a valid email address.');
-    if (input.password.length < 8) throw new AuthError('password', 'Use at least 8 characters.');
+    const weak = await passwordProblem(input.password, [input.username]);
+    if (weak) throw new AuthError('password', weak);
     if (!input.dob || ageOn(input.dob) < 18) throw new AuthError('dob', 'You must be 18 or older to use CADNEX.');
     if (!isCurrency(input.currency)) throw new AuthError('currency', 'Choose a currency.');
     if (!(await usernameFree(username).catch(() => true))) throw new AuthError('username', 'That username is taken.');
@@ -202,7 +198,8 @@ export const authService = {
   },
 
   async changePassword(email: string, currentPw: string, next: string): Promise<void> {
-    if (next.length < 8) throw new AuthError('next', 'Use at least 8 characters.');
+    const weak = await passwordProblem(next);
+    if (weak) throw new AuthError('next', weak);
     // confirm it's really you before changing it
     const check = await cloud().auth.signInWithPassword({ email, password: currentPw });
     if (check.error) {
@@ -223,7 +220,8 @@ export const authService = {
 
   /** After following a reset link: the user is signed in for recovery and picks a new password. */
   async setNewPassword(next: string): Promise<void> {
-    if (next.length < 8) throw new AuthError('password', 'Use at least 8 characters.');
+    const weak = await passwordProblem(next);
+    if (weak) throw new AuthError('password', weak);
     const { error } = await cloud().auth.updateUser({ password: next });
     if (error) fail(error, 'password');
   },
@@ -242,14 +240,14 @@ export const authService = {
   async openAccount(user: PublicUser): Promise<void> {
     const cur = isCurrency(user.currency) ? user.currency : 'USD';
     if (!(await db.wallets.get(user.id))) {
-      const start = startingBalance(cur);
-      await db.transaction('rw', [db.wallets, db.ledger], async () => {
-        await db.wallets.put({ userId: user.id, currency: cur, balanceMinor: start.toString(), updatedAt: Date.now() });
-        await db.ledger.put({
-          id: `l_start_${user.id}`, userId: user.id, type: 'DEMO_ADJUST', amountMinor: start.toString(), balanceAfterMinor: start.toString(),
-          currency: cur, note: 'Starting demo balance', createdAt: stamp(),
+      if (remoteMoney()) {
+        await serverMoney('open', { currency: cur });
+      } else {
+        const change = openWallet({ userId: user.id, now: Date.now(), id: uid, stamp }, cur);
+        await db.transaction('rw', [db.wallets, db.ledger], async () => {
+          if (!(await db.wallets.get(user.id))) await commitLocal(change);
         });
-      });
+      }
     }
     if (!(await db.settings.get(user.id))) await db.settings.put(defaultSettings(user.id));
   },

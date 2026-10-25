@@ -11,7 +11,7 @@ import { gentle, press, snappy, spring } from '../../components/motion';
 import { Pill, Tabs } from '../../components/ui';
 import { currency } from '../../lib/currencies';
 import { convertMinor, formatMoney, Minor, pow10, toE4, toPlain } from '../../lib/money';
-import { BetError, betService, NewBet, shortRef } from '../../services/betService';
+import { BetError, betService, NewBet, shortRef, OddsChangedError } from '../../services/betService';
 import { WalletError } from '../../services/walletService';
 import { checkLimits } from '../responsible/limits';
 import { useSession } from '../../store/session';
@@ -226,6 +226,15 @@ export function SlipContent({ onDone }: { onDone?: () => void }) {
       }, 1700);
     } catch (e) {
       setPhase('idle');
+      // the server re-priced the slip: show its prices, so the next tap places at them
+      if (e instanceof OddsChangedError) {
+        const slipStore = useSlip.getState();
+        for (const [id, odds] of Object.entries(e.prices)) {
+          if (odds > 1 && slipStore.sels.some((x) => x.id === id && x.odds !== odds)) slipStore.accept(id, odds);
+        }
+        useUi.getState().toast({ tone: 'neutral', title: 'Odds changed', body: e.message.replace(/^Odds changed: /, '') }, 6500);
+        return;
+      }
       const msg = e instanceof BetError || e instanceof WalletError || e instanceof Error ? e.message : 'Could not place the bet.';
       useUi.getState().toast({ tone: 'error', title: msg, action: msg.includes('Insufficient') ? { label: 'Top up', to: '/wallet' } : undefined });
     }
