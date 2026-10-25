@@ -230,7 +230,7 @@ Deploys to Vercel with no extra configuration. Database setup lives in `supabase
 <p align="center">
   <sub>
     CADNEX uses virtual money only and is for adults (18+). Fixtures and scores come from public sports data and can run a little behind live TV.<br>
-    CADNEX is not affiliated with any league, team, player or data provider.
+    CADNEX is not affiliated with any league, team, player or data provider. Team names and logos are trademarks of their respective owners.
   </sub>
 </p>
 

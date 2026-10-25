@@ -10,11 +10,12 @@
 import qrcode from 'qrcode-generator';
 import { GLYPHS } from '../components/glyphs';
 import type { EventPublic } from '../engine/types';
+import { drawContained, logoImage } from './logos';
 import { Assets, clamp, H, outBack, outCubic, rand, rr, span, tracked, W } from './story';
 
 export type MatchPhase = 'PRE' | 'LIVE' | 'FT';
 
-export interface MatchSide { name: string; short: string; color: string; ink: string }
+export interface MatchSide { name: string; short: string; color: string; ink: string; logo?: string }
 export interface MatchStory {
   phase: MatchPhase;
   shield: boolean;
@@ -90,8 +91,8 @@ export function matchStoryFrom(ev: EventPublic, fmtOdds: (o: number) => string, 
     date: d.toLocaleDateString([], { weekday: 'short', day: 'numeric', month: 'short' }),
     time: d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
     countdown: phase === 'PRE' ? countdown(ev.startTime - now) : null,
-    home: { name: ev.home.name, short: monogram(ev.home.name, ev.home.short, ev.sport), color: hc, ink: inkFor(hc) },
-    away: { name: ev.away.name, short: monogram(ev.away.name, ev.away.short, ev.sport), color: ac, ink: inkFor(ac) },
+    home: { name: ev.home.name, short: monogram(ev.home.name, ev.home.short, ev.sport), color: hc, ink: inkFor(hc), logo: ev.home.logo },
+    away: { name: ev.away.name, short: monogram(ev.away.name, ev.away.short, ev.sport), color: ac, ink: inkFor(ac), logo: ev.away.logo },
     score,
     clock: phase === 'FT' ? 'FULL TIME' : ev.clock || ev.period || 'LIVE',
     scorers,
@@ -106,7 +107,7 @@ export function matchStoryFrom(ev: EventPublic, fmtOdds: (o: number) => string, 
     odds,
     winner,
     link,
-    key: `${phase}|${score?.join('-')}|${ev.clock}|${odds.map((o) => o.odds).join(',')}`,
+    key: `${ev.home.logo ?? ''}${ev.away.logo ?? ''}|${phase}|${score?.join('-')}|${ev.clock}|${odds.map((o) => o.odds).join(',')}`,
   };
 }
 
@@ -138,6 +139,21 @@ function crest(ctx: CanvasRenderingContext2D, a: Assets, side: MatchSide, cx: nu
     ctx.fillStyle = g;
     ctx.fillRect(cx - r * 2.4, cy - r * 2.4, r * 4.8, r * 4.8);
     ctx.restore();
+  }
+  // the club's own logo when there is one: lifted off the page, with a faint light rim
+  const img = logoImage(side.logo);
+  if (img) {
+    ctx.save();
+    ctx.shadowColor = 'rgba(0,0,0,0.55)';
+    ctx.shadowBlur = 50;
+    ctx.shadowOffsetY = 24;
+    drawContained(ctx, img, cx, cy, r * 1.95);
+    ctx.shadowColor = 'rgba(255,255,255,0.45)';
+    ctx.shadowBlur = 5;
+    ctx.shadowOffsetY = 0;
+    drawContained(ctx, img, cx, cy, r * 1.95);
+    ctx.restore();
+    return;
   }
   ctx.save();
   ctx.shadowColor = 'rgba(0,0,0,0.55)';

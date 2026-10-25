@@ -14,6 +14,8 @@ export interface Participant {
   name: string;
   short: string;
   colors: [string, string];
+  /** official logo URL, when the club has one */
+  logo?: string;
 }
 
 export type IncidentKind =

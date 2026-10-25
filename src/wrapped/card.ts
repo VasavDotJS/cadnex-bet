@@ -6,6 +6,7 @@
 import { formatMoney } from '../lib/money';
 import { Assets, clamp, H, outBack, outCubic, rand, rr, rolling, span, tracked, W } from '../share/story';
 import type { Wrapped } from './stats';
+import { drawContained, logoImage } from '../share/logos';
 
 const INK = '#F4F4F6';
 const MUTE = 'rgba(244,244,246,0.55)';
@@ -154,13 +155,16 @@ export function drawWrappedCard(ctx: CanvasRenderingContext2D, t: number, w: Wra
     ctx.save();
     ctx.globalAlpha = outCubic(p);
     const text = `Ride or die · ${w.team.name} ×${w.team.n}`;
+    const logo = logoImage(w.team.logo);
+    const lw = logo ? 50 : 0;
     ctx.font = `600 32px ${sans}`;
-    const pw = ctx.measureText(text).width + 56;
+    const pw = ctx.measureText(text).width + 56 + lw;
     rr(ctx, 84, 762, pw, 64, 32);
     ctx.fillStyle = 'rgba(255,255,255,0.12)';
     ctx.fill();
+    if (logo) drawContained(ctx, logo, 84 + 22 + 20, 794, 42);
     ctx.fillStyle = INK;
-    ctx.fillText(text, 112, 805);
+    ctx.fillText(text, 112 + lw, 805);
     ctx.restore();
   }
 

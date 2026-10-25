@@ -6,6 +6,7 @@
 import type { League } from '../data/leagues';
 import type { SportId } from '../data/types';
 import { CricketInfo, eventKey, FeedEvent, FeedIncident, FeedIncidentKind, FeedOdds, FeedSide, FeedStatus } from './types';
+import { cleanLogo } from '../lib/logo';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type J = any;
@@ -94,6 +95,7 @@ function teamSide(c: J, sport: SportId): FeedSide {
     name,
     short: sport === 'tennis' ? name.split(' ').slice(-1)[0] : short,
     colors: [hex(t.color ?? c?.color, fallback[0]), hex(t.alternateColor ?? c?.alternateColor, fallback[1])],
+    logo: sport === 'tennis' ? undefined : cleanLogo(t.logo ?? arr(t.logos)[0]?.href ?? c?.logo),
     score: num(scoreText) ?? 0,
     scoreText: sport === 'cricket' ? scoreText || undefined : undefined,
     winner: c?.winner === true ? true : undefined,
