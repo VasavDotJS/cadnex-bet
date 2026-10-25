@@ -11,6 +11,9 @@ const SITE = 'https://site.api.espn.com/apis/site/v2/sports';
 const SITE_WEB = 'https://site.web.api.espn.com/apis/site/v2/sports';
 const CRICKET_HEADER = 'https://site.web.api.espn.com/apis/personalized/v2/scoreboard/header?sport=cricket&region=in&tz=Asia/Calcutta&lang=en';
 
+/** ESPN refuses some runtimes' default user agent (Supabase Edge gets 403), so say who we are. */
+const USER_AGENT = 'Mozilla/5.0 (compatible; CADNEX/1.0; +https://cadnex.vercel.app)';
+
 const LIVE_TTL = 15;
 const FUTURE_TTL = 600;
 
@@ -29,7 +32,7 @@ async function getJson(url: string, ttl: number): Promise<{ ok: boolean; status:
   const hit = memo.get(url);
   if (hit && t0 - hit.at < ttl * 1000) return { ok: true, status: 200, json: hit.json, ms: 0 };
   try {
-    const res = await fetch(url, { headers: { accept: 'application/json' }, cache: 'no-store', signal: AbortSignal.timeout(8000) });
+    const res = await fetch(url, { headers: { accept: 'application/json', 'user-agent': USER_AGENT }, cache: 'no-store', signal: AbortSignal.timeout(8000) });
     if (!res.ok) return stale(url, t0, res.status, `HTTP ${res.status}`);
     const json = await res.json();
     memo.set(url, { at: Date.now(), json });
