@@ -106,7 +106,7 @@ function Toggle({ on, onChange, label }: { on: boolean; onChange: (v: boolean) =
   );
 }
 
-function canShareFiles(f: File): boolean {
+export function canShareFiles(f: File): boolean {
   try {
     return typeof navigator !== 'undefined' && !!navigator.canShare && navigator.canShare({ files: [f] });
   } catch {
@@ -114,7 +114,7 @@ function canShareFiles(f: File): boolean {
   }
 }
 
-function download(f: File) {
+export function download(f: File) {
   const url = URL.createObjectURL(f);
   const a = document.createElement('a');
   a.href = url;

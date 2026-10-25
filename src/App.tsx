@@ -26,6 +26,7 @@ import { WalletPage } from './features/wallet/Wallet';
 import { convertMinor, formatMoney } from './lib/money';
 import { startPwa } from './pwa/install';
 import { ShareStorySheet } from './share/ShareStory';
+import { WrappedPlayer } from './wrapped/Wrapped';
 import { SharedSlip } from './share/SharedSlip';
 import { markReady } from './splash/ready';
 import { useSession } from './store/session';
@@ -174,6 +175,7 @@ export function App() {
         <Celebration />
         <InstallSheet />
         <ShareStorySheet />
+        <WrappedPlayer />
         <Toasts />
       </HashRouter>
     </ErrorBoundary>

@@ -206,11 +206,11 @@ function qrFor(assets: Assets, text: string) {
 
 // ───────────────────────────── easing ─────────────────────────────
 
-const clamp = (v: number, a = 0, b = 1) => Math.min(b, Math.max(a, v));
-const span = (t: number, a: number, b: number) => clamp((t - a) / (b - a));
-const outCubic = (p: number) => 1 - Math.pow(1 - p, 3);
-const outQuint = (p: number) => 1 - Math.pow(1 - p, 5);
-const outBack = (p: number) => {
+export const clamp = (v: number, a = 0, b = 1) => Math.min(b, Math.max(a, v));
+export const span = (t: number, a: number, b: number) => clamp((t - a) / (b - a));
+export const outCubic = (p: number) => 1 - Math.pow(1 - p, 3);
+export const outQuint = (p: number) => 1 - Math.pow(1 - p, 5);
+export const outBack = (p: number) => {
   const c1 = 1.4;
   const c3 = c1 + 1;
   return 1 + c3 * Math.pow(p - 1, 3) + c1 * Math.pow(p - 1, 2);
@@ -224,7 +224,7 @@ const INK = '#F4F4F6';
 const MUTE = 'rgba(244,244,246,0.52)';
 const FAINT = 'rgba(244,244,246,0.28)';
 
-function rr(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, r: number) {
+export function rr(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, r: number) {
   const k = Math.min(r, w / 2, h / 2);
   ctx.beginPath();
   ctx.moveTo(x + k, y);
@@ -254,7 +254,7 @@ function ticket(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, 
   ctx.closePath();
 }
 
-function fit(ctx: CanvasRenderingContext2D, text: string, max: number): string {
+export function fit(ctx: CanvasRenderingContext2D, text: string, max: number): string {
   if (ctx.measureText(text).width <= max) return text;
   let t = text;
   while (t.length > 1 && ctx.measureText(t + '…').width > max) t = t.slice(0, -1);
@@ -262,7 +262,7 @@ function fit(ctx: CanvasRenderingContext2D, text: string, max: number): string {
 }
 
 /** Text with even letter spacing (canvas letterSpacing isn't everywhere yet). */
-function tracked(ctx: CanvasRenderingContext2D, text: string, x: number, y: number, spacing: number, align: 'left' | 'center' | 'right' = 'left') {
+export function tracked(ctx: CanvasRenderingContext2D, text: string, x: number, y: number, spacing: number, align: 'left' | 'center' | 'right' = 'left') {
   const widths = [...text].map((c) => ctx.measureText(c).width);
   const total = widths.reduce((a, b) => a + b, 0) + spacing * (text.length - 1);
   let cx = align === 'center' ? x - total / 2 : align === 'right' ? x - total : x;
@@ -279,7 +279,7 @@ function tracked(ctx: CanvasRenderingContext2D, text: string, x: number, y: numb
  * Slot-machine digits: every digit spins down into place, left to right.
  * Non-digits fade in. `p` runs 0 → 1.
  */
-function rolling(ctx: CanvasRenderingContext2D, text: string, x: number, y: number, size: number, p: number, align: 'left' | 'right' | 'center') {
+export function rolling(ctx: CanvasRenderingContext2D, text: string, x: number, y: number, size: number, p: number, align: 'left' | 'right' | 'center') {
   const chars = [...text];
   const widths = chars.map((c) => ctx.measureText(c).width);
   const total = widths.reduce((a, b) => a + b, 0);
@@ -318,7 +318,7 @@ function rolling(ctx: CanvasRenderingContext2D, text: string, x: number, y: numb
   ctx.textBaseline = prevBase;
 }
 
-function rand(seed: number) {
+export function rand(seed: number) {
   let s = seed >>> 0;
   return () => {
     s = (s * 1664525 + 1013904223) >>> 0;

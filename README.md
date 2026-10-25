@@ -49,7 +49,7 @@ It's built to feel like a flagship app, not a demo: fluid motion, a refined dark
     </td>
     <td valign="top">
       <h4>🎬 Built to be shared</h4>
-      Turn any bet into an animated story for Instagram and WhatsApp, with a code friends scan to copy it.
+      Animated bet stories and a weekly Wrapped for Instagram and WhatsApp, with a code friends scan to copy your picks.
     </td>
   </tr>
 </table>
@@ -104,6 +104,22 @@ Any bet, or the picks in your slip, becomes a **6-second animated story** made r
 One tap opens **Instagram Stories** or **WhatsApp Status**. Each story carries a **QR code and link**: friends who scan it see your picks with today's prices and copy them into their own slip in one tap. Switches let you hide your stake or your username.
 
 <br clear="left">
+
+---
+
+## Your week, wrapped
+
+<p align="center">
+  <img src="docs/readme/wrapped.jpg" alt="CADNEX Wrapped slides: intro, bets placed, favourite team, hit rate, biggest win and personality" width="100%">
+</p>
+
+Every week and every month, CADNEX turns your bets into a **full-screen, tap-through recap** with the feel of a music-streaming year in review:
+
+- **The big numbers:** bets placed, hit rate, best run, biggest win, longest odds landed and the bottom line, each with its own bold colour and motion.
+- **Your team:** the side you backed most, in its colours. Ride or die.
+- **Your habits:** night owl, live-bettor or weekend warrior.
+- **Your personality:** one of seven, from *The Maverick* to *The Night Owl*, revealed on a holographic card.
+- **A shareable recap:** a 6-second video card made for Instagram Stories and WhatsApp Status.
 
 ---
 
@@ -170,7 +186,7 @@ Built with a modern, lightweight stack and no paid data contracts:
   <img alt="Framer Motion" src="https://img.shields.io/badge/Framer_Motion-111?logo=framer&logoColor=white">
   <img alt="Supabase" src="https://img.shields.io/badge/Supabase-1c1c1c?logo=supabase&logoColor=3ECF8E">
   <img alt="Vercel" src="https://img.shields.io/badge/Vercel-black?logo=vercel&logoColor=white">
-  <img alt="Tests" src="https://img.shields.io/badge/tests-51_passing-B5F23D">
+  <img alt="Tests" src="https://img.shields.io/badge/tests-57_passing-B5F23D">
 </p>
 
 - **One app, everywhere:** a single web codebase serves phones, tablets and desktops, and installs as an app.
