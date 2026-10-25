@@ -15,3 +15,12 @@ describe('club logos', () => {
     expect(logoSrc('https://a.espncdn.com/x.png', 400)).toContain('w=500');
   });
 });
+
+describe('event ids', () => {
+  it('only lets plain ids reach upstream URLs', async () => {
+    const { parseEventKey } = await import('../feed/types');
+    expect(parseEventKey('eng.1~701~20261024')).toEqual({ leagueId: 'eng.1', espnId: '701', ymd: '20261024' });
+    expect(parseEventKey('cricket-23694~9001~20261024')).not.toBeNull();
+    for (const bad of ['eng.1~701?x=1~20261024', 'eng.1~70/1~20261024', '../a~1~20261024', 'eng.1~1~2026102', 'a~b', `${'x'.repeat(90)}~1~20261024`]) expect(parseEventKey(bad)).toBeNull();
+  });
+});

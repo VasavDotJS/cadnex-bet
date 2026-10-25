@@ -7,6 +7,8 @@
  * Kept short on purpose so the QR code on a story stays easy to scan.
  */
 
+import { parseEventKey } from '../feed/types';
+
 export interface SharedPick {
   eventId: string;
   marketKey: string;
@@ -40,12 +42,15 @@ export function parseShare(user: string | undefined, legs: string | undefined): 
       return s;
     }
   };
+  // links come from anyone, so only well-formed picks get through
+  const parts = legs.split(',');
+  if (!parts.length || parts.length > 20) return null;
   const picks: SharedPick[] = [];
-  for (const part of legs.split(',')) {
+  for (const part of parts) {
     const [eventId, marketKey, code] = part.split('!').map(dec);
-    if (!eventId || !marketKey || !code) return null;
+    if (!eventId || !marketKey || !code || !parseEventKey(eventId) || !/^[\w.:+-]{1,40}$/.test(marketKey) || !/^[\w.:+-]{1,40}$/.test(code)) return null;
     picks.push({ eventId, marketKey, code });
   }
-  if (!picks.length || picks.length > 20) return null;
-  return { user: dec(user ?? 'player').slice(0, 24), picks };
+  const name = dec(user ?? 'player');
+  return { user: /^[A-Za-z0-9_.]{1,24}$/.test(name) ? name : 'player', picks };
 }

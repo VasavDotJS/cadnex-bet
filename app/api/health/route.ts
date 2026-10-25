@@ -1,10 +1,13 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
+import { rateLimit } from '../../../src/server/guard';
 import { loadFeed } from '../../../src/feed/server';
 
 export const dynamic = 'force-dynamic';
 
 /** Quick check that every upstream feed answers and parses. Open /api/health in a browser. */
-export async function GET() {
+export async function GET(req: NextRequest) {
+  const limited = rateLimit(req, 'health', 20);
+  if (limited) return limited;
   const feed = await loadFeed();
   const bySport: Record<string, { total: number; live: number }> = {};
   for (const e of feed.events) {

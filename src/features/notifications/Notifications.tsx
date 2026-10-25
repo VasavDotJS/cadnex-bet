@@ -8,6 +8,9 @@ import { Empty, Pill, TwoTone } from '../../components/ui';
 import { useSession } from '../../store/session';
 import { spring } from '../../components/motion';
 
+/** Notification links only ever open pages inside the app. */
+const inAppPath = (link?: string | null) => (link && /^\/(?![\\/])[^\s]*$/.test(link) ? link : '/');
+
 let listeners = new Set<() => void>();
 export function notifyChanged(): void {
   listeners.forEach((l) => l());
@@ -60,7 +63,7 @@ export function NotificationsPage() {
         ) : (
           rows.map((n, i) => (
             <motion.div key={n.id} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ ...spring, delay: Math.min(i, 10) * 0.035 }}>
-              <Link to={n.link ?? '/'} onClick={() => { void db.notifications.update(n.id, { read: true }).then(notifyChanged); }} className="flex items-start gap-3 rounded-[22px] bg-surface p-4">
+              <Link to={inAppPath(n.link)} onClick={() => { void db.notifications.update(n.id, { read: true }).then(notifyChanged); }} className="flex items-start gap-3 rounded-[22px] bg-surface p-4">
                 <span className={`mt-0.5 inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full ${n.read ? 'bg-surface2 text-mute' : 'bg-lime/20 text-ink'}`}><Bell size={17} strokeWidth={1.5} /></span>
                 <div className="min-w-0 flex-1">
                   <div className="flex items-baseline justify-between gap-2">

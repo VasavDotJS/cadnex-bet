@@ -116,7 +116,9 @@ export function eventKey(leagueId: string, espnId: string, start: number): strin
 }
 
 export function parseEventKey(id: string): { leagueId: string; espnId: string; ymd: string } | null {
+  if (id.length > 80) return null;
   const p = id.split('~');
-  if (p.length !== 3 || !/^\d{8}$/.test(p[2])) return null;
+  // every part ends up inside an upstream URL, so only plain ids get through
+  if (p.length !== 3 || !/^[A-Za-z0-9][A-Za-z0-9._-]{0,39}$/.test(p[0]) || !/^[A-Za-z0-9-]{1,24}$/.test(p[1]) || !/^\d{8}$/.test(p[2])) return null;
   return { leagueId: p[0], espnId: p[1], ymd: p[2] };
 }
