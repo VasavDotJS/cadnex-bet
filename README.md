@@ -103,6 +103,8 @@ Any bet, or the picks in your slip, becomes a **6-second animated story** made r
 
 One tap opens **Instagram Stories** or **WhatsApp Status**. Each story carries a **QR code and link**: friends who scan it see your picks with today's prices and copy them into their own slip in one tap. Switches let you hide your stake or your username.
 
+**Matches get stories too.** Share any fixture from its page: before kick-off it's a matchday poster with crests, a lightning *VS*, the kick-off time and prices; once it starts it becomes a live scoreboard with a dot-matrix score, scorers, stats and the momentum wave; at full time it crowns the winner. All in the two clubs' colours, with a code that opens the match.
+
 <br clear="left">
 
 ---
@@ -186,7 +188,7 @@ Built with a modern, lightweight stack and no paid data contracts:
   <img alt="Framer Motion" src="https://img.shields.io/badge/Framer_Motion-111?logo=framer&logoColor=white">
   <img alt="Supabase" src="https://img.shields.io/badge/Supabase-1c1c1c?logo=supabase&logoColor=3ECF8E">
   <img alt="Vercel" src="https://img.shields.io/badge/Vercel-black?logo=vercel&logoColor=white">
-  <img alt="Tests" src="https://img.shields.io/badge/tests-57_passing-B5F23D">
+  <img alt="Tests" src="https://img.shields.io/badge/tests-60_passing-B5F23D">
 </p>
 
 - **One app, everywhere:** a single web codebase serves phones, tablets and desktops, and installs as an app.

@@ -15,6 +15,7 @@ import { press, spring } from '../../components/motion';
 import { Chip, countdown, Empty, kickoffLabel, LiveTag, Tabs, useNow } from '../../components/ui';
 import { useLive } from '../../store/live';
 import { useSession } from '../../store/session';
+import { useShare } from '../../share/ShareStory';
 import { useUi } from '../../store/ui';
 
 const KIND_MARK: Partial<Record<Incident['kind'], string>> = {
@@ -33,10 +34,7 @@ function Rail({ ev }: { ev: EventPublic }) {
   const items = [
     { label: fav ? `Unfavourite ${ev.home.name}` : `Favourite ${ev.home.name}`, icon: <Star size={18} strokeWidth={1.5} className={fav ? 'fill-lime text-lime' : ''} />, on: () => { if (need() || !settings) return; void update({ favourites: fav ? settings.favourites.filter((f) => f !== favKey) : [...settings.favourites, favKey] }); useUi.getState().toast({ tone: 'neutral', title: fav ? `${ev.home.name} removed from favourites` : `${ev.home.name} added to favourites` }); } },
     { label: 'Jump to stats', icon: <ChartNoAxesColumn size={18} strokeWidth={1.5} />, on: () => document.getElementById('event-tabs')?.dispatchEvent(new CustomEvent('stats')) },
-    { label: 'Share', icon: <Share2 size={18} strokeWidth={1.5} />, on: async () => {
-      const url = window.location.href;
-      try { if (navigator.share) await navigator.share({ title: `${ev.home.name} v ${ev.away.name}`, url }); else { await navigator.clipboard.writeText(url); useUi.getState().toast({ tone: 'neutral', title: 'Link copied' }); } } catch { /* cancelled */ }
-    } },
+    { label: 'Share match as a story', icon: <Share2 size={18} strokeWidth={1.5} />, on: () => useShare.getState().open({ kind: 'event', eventId: ev.id }) },
     { label: followed ? 'Stop alerts' : 'Alert me on big moments', icon: followed ? <BellRing size={18} strokeWidth={1.5} className="text-lime" /> : <Bell size={18} strokeWidth={1.5} />, on: () => { if (need() || !settings) return; void update({ followed: followed ? settings.followed.filter((f) => f !== ev.id) : [...settings.followed, ev.id] }); useUi.getState().toast({ tone: 'neutral', title: followed ? 'Alerts off for this match' : 'You will get alerts for this match' }); } },
     { label: 'Odds and display settings', icon: <Settings2 size={18} strokeWidth={1.5} />, on: () => nav('/settings') },
   ];

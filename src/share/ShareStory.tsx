@@ -18,9 +18,44 @@ import { useSlip } from '../store/slip';
 import { useUi } from '../store/ui';
 import { shareUrl } from './link';
 import { Assets, drawStory, DURATION, H, loadAssets, Story, StoryOptions, storyFromBet, storyFromSlip, W } from './story';
+import { drawMatchStory, matchStoryFrom } from './matchStory';
 import { makeStoryFile, StoryFile } from './video';
 
-type Source = { kind: 'bet'; betId: string } | { kind: 'slip' };
+type Source = { kind: 'bet'; betId: string } | { kind: 'slip' } | { kind: 'event'; eventId: string };
+
+/** Whatever is being shared, reduced to what the sheet needs: a way to draw it and where it links. */
+interface Card {
+  key: string;
+  link: string;
+  name: string;
+  glow: string;
+  amounts: boolean;
+  caption: string;
+  footnote: string;
+  draw(ctx: CanvasRenderingContext2D, t: number, a: Assets, o: StoryOptions): void;
+}
+
+const VIOLET = 'rgb(124 108 246 / 0.4)';
+const LIMEGLOW = 'rgb(181 242 61 / 0.35)';
+
+function betCard(story: Story): Card {
+  const won = story.status === 'WON' || story.status === 'CASHED_OUT';
+  return {
+    key: `${story.status}|${story.odds}|${story.ret}|${story.legs.map((l) => l.result + (l.live?.score ?? '')).join(',')}`,
+    link: story.link,
+    name: `cadnex-${story.status.toLowerCase()}`,
+    glow: won ? LIMEGLOW : VIOLET,
+    amounts: !!story.stake,
+    caption: `Copy my bet on CADNEX 👉 ${story.link}`,
+    footnote: 'Friends who scan the code or open the link get your picks in their own slip, at the current prices.',
+    draw: (ctx, t, a, o) => drawStory(ctx, t, story, a, o),
+  };
+}
+
+const rgba = (hex: string, a: number) => {
+  const n = parseInt(hex.slice(1), 16);
+  return `rgb(${(n >> 16) & 255} ${(n >> 8) & 255} ${n & 255} / ${a})`;
+};
 
 export const useShare = create<{ source: Source | null; open(s: Source): void; close(): void }>((set) => ({
   source: null,
@@ -28,8 +63,8 @@ export const useShare = create<{ source: Source | null; open(s: Source): void; c
   close: () => set({ source: null }),
 }));
 
-/** Build the story for the current source from live app state. */
-function useStory(source: Source | null): Story | null {
+/** Build the card for the current source from live app state. */
+function useCard(source: Source | null): Card | null {
   const bets = useSession((s) => s.bets);
   const user = useSession((s) => s.user);
   const fmt = useSession((s) => s.settings?.oddsFormat ?? 'decimal');
@@ -47,19 +82,39 @@ function useStory(source: Source | null): Story | null {
     const name = user?.username ?? '';
     const link = (picks: Parameters<typeof shareUrl>[1]) => shareUrl(name, picks);
     const odds = (o: number) => formatOdds(o, fmt);
+    if (source.kind === 'event') {
+      const ev = events[source.eventId];
+      if (!ev) return null;
+      const url = `${window.location.origin}/#/event/${encodeURIComponent(ev.id)}`;
+      const m = matchStoryFrom(ev, odds, url);
+      const title = `${ev.home.name} v ${ev.away.name}`;
+      const glow = m.phase === 'FT' && m.winner !== null ? (m.winner === 0 ? m.home.color : m.away.color) : m.home.color;
+      return {
+        key: m.key,
+        link: url,
+        name: `cadnex-${m.home.short}-${m.away.short}`.toLowerCase(),
+        glow: rgba(glow, 0.45),
+        amounts: false,
+        caption: m.phase === 'LIVE' ? `${title} is live, ${m.score?.join('–')} 🔴 Follow it on CADNEX 👉 ${url}` : m.phase === 'FT' ? `${title} finished ${m.score?.join('–')} ⚽ on CADNEX 👉 ${url}` : `${title} · ${m.date} ${m.time} 🔥 Get your picks in on CADNEX 👉 ${url}`,
+        footnote: 'The code and link open this match on CADNEX, with live score and prices.',
+        draw: (ctx, t, a) => drawMatchStory(ctx, t, m, a),
+      };
+    }
     if (source.kind === 'bet') {
       const bet = bets.find((b) => b.id === source.betId);
-      return bet ? storyFromBet(bet, events, odds, (m, c) => formatMoney(m, c), name, link) : null;
+      const s = bet ? storyFromBet(bet, events, odds, (m, c) => formatMoney(m, c), name, link) : null;
+      return s ? betCard(s) : null;
     }
-    return sels.length ? storyFromSlip(sels, events, odds, name, link) : null;
+    const s = sels.length ? storyFromSlip(sels, events, odds, name, link) : null;
+    return s ? betCard(s) : null;
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [source, bets, user, fmt, sels, beat]);
 }
 
-function Preview({ story, assets, opts }: { story: Story; assets: Assets; opts: StoryOptions }) {
+function Preview({ card, assets, opts }: { card: Card; assets: Assets; opts: StoryOptions }) {
   const ref = useRef<HTMLCanvasElement>(null);
-  const live = useRef({ story, opts });
-  live.current = { story, opts };
+  const live = useRef({ card, opts });
+  live.current = { card, opts };
   useEffect(() => {
     const c = ref.current;
     if (!c) return;
@@ -81,7 +136,7 @@ function Preview({ story, assets, opts }: { story: Story; assets: Assets; opts: 
       last = now;
       const t = reduced ? DURATION : ((now - start) / 1000) % LOOP;
       ctx.setTransform(scale, 0, 0, scale, 0, 0);
-      drawStory(ctx, Math.min(t, DURATION + (t > DURATION ? t - DURATION : 0)), live.current.story, assets, live.current.opts);
+      live.current.card.draw(ctx, t, assets, live.current.opts);
       // fade to black and back at the loop point
       const fade = t > LOOP - 0.35 ? (t - (LOOP - 0.35)) / 0.35 : t < 0.2 ? 1 - t / 0.2 : 0;
       if (fade > 0) {
@@ -128,7 +183,7 @@ export function download(f: File) {
 export function ShareStorySheet() {
   const source = useShare((s) => s.source);
   const close = useShare((s) => s.close);
-  const story = useStory(source);
+  const card = useCard(source);
   const [assets, setAssets] = useState<Assets | null>(null);
   const [opts, setOpts] = useState<StoryOptions>({ showAmounts: true, showUser: true });
   const [file, setFile] = useState<StoryFile | null>(null);
@@ -141,15 +196,16 @@ export function ShareStorySheet() {
   }, [source, assets]);
 
   // make the file in the background; redo it when the switches change
-  const storyKey = story ? `${story.status}|${story.odds}|${story.ret}|${story.legs.map((l) => l.result + (l.live?.score ?? '')).join(',')}` : '';
+  const storyKey = card?.key ?? '';
   useEffect(() => {
-    if (!source || !story || !assets) return;
+    if (!source || !card || !assets) return;
     const my = ++gen.current;
     setFile(null);
     setProgress(0);
-    const snapshot = story;
+    const snapshot = card;
+    const o = opts;
     const t = setTimeout(() => {
-      void makeStoryFile((ctx, time) => drawStory(ctx, time, snapshot, assets, opts), (p) => { if (gen.current === my) setProgress(p); }, `cadnex-${snapshot.status.toLowerCase()}`)
+      void makeStoryFile((ctx, time) => snapshot.draw(ctx, time, assets, o), (p) => { if (gen.current === my) setProgress(p); }, snapshot.name)
         .then((f) => { if (gen.current === my) setFile(f); });
     }, 350);
     return () => clearTimeout(t);
@@ -169,9 +225,9 @@ export function ShareStorySheet() {
       6500,
     );
   const share = async (where: 'instagram' | 'whatsapp') => {
-    if (!file || !story) return;
+    if (!file || !card) return;
     try {
-      await navigator.share({ files: [file.file], text: where === 'whatsapp' ? `Copy my bet on CADNEX 👉 ${story.link}` : undefined, title: 'CADNEX' });
+      await navigator.share({ files: [file.file], text: where === 'whatsapp' ? card.caption : undefined, title: 'CADNEX' });
     } catch (e) {
       if ((e as Error).name !== 'AbortError') useUi.getState().toast({ tone: 'error', title: 'Sharing did not open', body: 'Save the video and post it from your gallery instead.' });
       return;
@@ -179,26 +235,27 @@ export function ShareStorySheet() {
     tip(where);
   };
   const copy = async () => {
-    if (!story) return;
+    if (!card) return;
     try {
-      await navigator.clipboard.writeText(story.link);
+      await navigator.clipboard.writeText(card.link);
       setCopied(true);
       setTimeout(() => setCopied(false), 2200);
     } catch {
-      useUi.getState().toast({ tone: 'neutral', title: 'Your link', body: story.link }, 9000);
+      useUi.getState().toast({ tone: 'neutral', title: 'Your link', body: card.link }, 9000);
     }
   };
 
-  const hasAmounts = !!story?.stake;
+  const hasAmounts = !!card?.amounts;
+  const isMatch = source?.kind === 'event';
   const busy = !file;
   return (
-    <Sheet open={!!source && !!story} onClose={close} tall title={<>Share <span className="text-mute">story</span></>} label="Share as a story">
-      {story && (
+    <Sheet open={!!source && !!card} onClose={close} tall title={<>Share <span className="text-mute">{isMatch ? 'match' : 'story'}</span></>} label="Share as a story">
+      {card && (
         <div className="flex flex-col items-center gap-5 pb-2">
           <div className="relative w-[min(62vw,272px)]">
-            <div className="pointer-events-none absolute -inset-8 rounded-[60px] opacity-70 blur-2xl" style={{ background: story.status === 'WON' || story.status === 'CASHED_OUT' ? 'radial-gradient(closest-side, rgb(181 242 61 / 0.35), transparent)' : 'radial-gradient(closest-side, rgb(124 108 246 / 0.4), transparent)' }} />
+            <div className="pointer-events-none absolute -inset-8 rounded-[60px] opacity-70 blur-2xl" style={{ background: `radial-gradient(closest-side, ${card.glow}, transparent)` }} />
             <div className="relative overflow-hidden rounded-[30px] bg-[#0A0A0C]" style={{ boxShadow: '0 0 0 1px rgb(255 255 255 / 0.08), 0 30px 60px -20px rgb(0 0 0 / 0.7)' }}>
-              {assets ? <Preview story={story} assets={assets} opts={opts} /> : <div className="skeleton aspect-[9/16] w-full" />}
+              {assets ? <Preview card={card} assets={assets} opts={opts} /> : <div className="skeleton aspect-[9/16] w-full" />}
             </div>
           </div>
 
@@ -219,7 +276,7 @@ export function ShareStorySheet() {
 
           <div className="grid w-full gap-2">
             {hasAmounts && <Toggle label="Show stake and returns" on={opts.showAmounts} onChange={(v) => setOpts({ ...opts, showAmounts: v })} />}
-            <Toggle label="Show my username" on={opts.showUser} onChange={(v) => setOpts({ ...opts, showUser: v })} />
+            {!isMatch && <Toggle label="Show my username" on={opts.showUser} onChange={(v) => setOpts({ ...opts, showUser: v })} />}
           </div>
 
           {shareable || busy ? (
@@ -240,7 +297,7 @@ export function ShareStorySheet() {
             <motion.button whileTap={press} disabled={busy} onClick={() => file && download(file.file)} className="flex h-12 items-center justify-center gap-2 rounded-[16px] bg-surface2 text-[14px] disabled:opacity-50"><Download size={16} />Save {file?.kind === 'image' ? 'image' : 'video'}</motion.button>
             <motion.button whileTap={press} onClick={() => void copy()} className="flex h-12 items-center justify-center gap-2 rounded-[16px] bg-surface2 text-[14px]">{copied ? <><Check size={16} className="text-up" />Copied</> : <><Link2 size={16} />Copy link</>}</motion.button>
           </div>
-          <p className="max-w-[40ch] text-center text-[12px] leading-relaxed text-faint">Friends who scan the code or open the link get your picks in their own slip, at the current prices.</p>
+          <p className="max-w-[40ch] text-center text-[12px] leading-relaxed text-faint">{card.footnote}</p>
         </div>
       )}
     </Sheet>
