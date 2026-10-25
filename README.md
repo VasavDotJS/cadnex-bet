@@ -1,287 +1,222 @@
-<p align="center"><img src="public/brand/cadnex-lockup.svg" alt="CDNX · CADNEX" width="320"></p>
+<p align="center">
+  <a href="https://cadnex.vercel.app"><img src="docs/readme/hero.jpg" alt="CADNEX: real matches, virtual money. The app on three phones: the home screen, a live match, and a winning story card" width="100%"></a>
+</p>
 
-# CADNEX (CDNX)
-### Virtual-Money Sportsbook on Real Matches & Live Scores
+<p align="center">
+  A premium sportsbook on live football, NBA, tennis and cricket,<br>
+  where every bet is played with a demo wallet and settled on the real result.
+</p>
 
-[![TypeScript](https://img.shields.io/badge/TypeScript-5.9-3178C6?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
-[![Next.js](https://img.shields.io/badge/Next.js-14.2-black?logo=nextdotjs&logoColor=white)](https://nextjs.org/)
-[![React](https://img.shields.io/badge/React-18.3-61DAFB?logo=react&logoColor=black)](https://react.dev/)
-[![Tailwind CSS](https://img.shields.io/badge/Tailwind-3.4-38B2AC?logo=tailwind-css&logoColor=white)](https://tailwindcss.com/)
-[![Framer Motion](https://img.shields.io/badge/Framer_Motion-14.6-black?logo=framer&logoColor=white)](https://www.framer.com/motion/)
-[![Dexie.js](https://img.shields.io/badge/Dexie.js-IndexedDB-4A90E2)](https://dexie.org/)
-[![Vitest](https://img.shields.io/badge/Tests-42_passing-brightgreen?logo=vitest&logoColor=white)](https://vitest.dev/)
-[![Compliance](https://img.shields.io/badge/Responsible_Gaming-Built--in-emerald)](#5-responsible-gaming--player-protection)
-[![License](https://img.shields.io/badge/License-Proprietary-blue.svg)](#license)
-
-**Live:** [cadnex.vercel.app](https://cadnex.vercel.app)
-
----
-
-## Executive Summary
-
-**CADNEX** is a virtual-money sportsbook built on **real matches**. Fixtures, live scores and results come from ESPN's free public scoreboard data. CADNEX prices every market itself from the real state of each match (score, clock, red cards, sets, wickets) and settles bets automatically on the real result.
-
-Everything a player stakes is virtual. There are no deposits, no withdrawals and no real-money risk, but the matches, the drama and the results are the real thing.
+<p align="center">
+  <a href="https://cadnex.vercel.app"><b>Open CADNEX →</b></a>
+  &nbsp;·&nbsp;
+  <a href="#install-it-like-an-app">Install on your phone</a>
+  &nbsp;·&nbsp;
+  <a href="#share-your-wins">See the story cards</a>
+</p>
 
 ---
 
-## Product Highlights
+## Why CADNEX
 
-| Capability | What it means |
-| :--- | :--- |
-| **Real Matches, Live Scores** | Top football leagues, the NBA, ATP/WTA tennis and live cricket, updated every 15 seconds from ESPN's public feed. No API key or paid data contract. |
-| **In-House Pricing** | Pre-match prices start from bookmaker lines published in the feed, then team ratings, records or rankings. In play they move with the real score and clock. |
-| **Safe Live Betting** | Markets pause after goals, red cards, set changes and wickets, at kick-off, and whenever the live data is more than ~50 seconds old. |
-| **Automatic Settlement & Cash Out** | Bets settle on the real result (football on the 90-minute score). Full and partial cash out at live fair value. |
-| **Financial Integrity** | Every amount is a `BigInt` count of minor units across 56 fiat and crypto currencies, and every balance change writes an immutable ledger entry. |
-| **Responsible Gaming** | Enforced deposit, loss, stake and single-bet limits, reality checks, breaks and self-exclusion. |
-| **Installable App** | Add it to the home screen on Android, iPhone, iPad and desktop. It opens full screen, has its own icon and launch screen, and still opens with no connection. |
-| **Story Sharing** | Turn any bet or slip into a 6-second animated 9:16 video, made on the phone, and post it to Instagram Stories or WhatsApp Status. A QR code and link let friends copy the picks into their own slip. |
-| **Cloud Accounts** | Sign up once and log in from any phone or computer. Logins run on Supabase Auth; wallet, bets, history and settings sync to Postgres with row level security, and update live across a user's devices. |
-| **Light Infrastructure** | One Next.js app on Vercel. Edge caching means all visitors share a handful of upstream requests. |
+Sports betting is thrilling to watch and risky to play. CADNEX keeps the thrill and drops the risk. The matches, scores and results are **real and live**, but the money is **virtual**. Nobody deposits, nobody loses a rupee, and everyone gets the full experience of a world-class sportsbook.
 
----
+It's built to feel like a flagship app, not a demo: fluid motion, a refined dark design, live prices that react to every goal, and moments worth sharing.
 
-## System Architecture
-
-```mermaid
-flowchart TD
-    ESPN[("ESPN public scoreboard API")]
-
-    subgraph Server ["Next.js Route Handlers (Vercel)"]
-        Feed["/api/feed: all matches, yesterday → +7 days"]
-        Event["/api/event: one match, settlement & detail"]
-        Health["/api/health: per-feed status"]
-        Normalise["Normalisers: football, NBA, tennis, cricket → FeedEvent"]
-    end
-
-    subgraph Engine ["Live Engine (Dedicated Web Worker)"]
-        Poll["Polling host: feed every 15 s, tracks matches with open bets"]
-        Models["Pricing models: Poisson football · normal-margin NBA · Markov tennis · chase-model cricket"]
-        Safety["Suspensions: key moments, kick-off, stale data"]
-        Settlement["Settlement from real results; void when data can't decide"]
-    end
-
-    subgraph UI ["User Experience (React 18 + Tailwind + Framer Motion)"]
-        Pages["Home, Sports, Live, Match, Bet Slip, My Bets, Wallet, Profile, Rules"]
-        Store["Zustand stores: live matches, slip, session, UI"]
-    end
-
-    subgraph Service ["Business & Financial Logic"]
-        AuthSvc["Auth (PBKDF2 + salt, sessions)"]
-        WalletSvc["Multi-currency wallet & ledger (BigInt)"]
-        BetSvc["Bets: singles, parlays, systems, cash out"]
-    end
-
-    Storage[("IndexedDB via Dexie: users, ledger, bets, limits")]
-
-    ESPN --> Normalise --> Feed & Event
-    Feed --> Poll
-    Event --> Poll
-    Poll --> Models --> Safety --> Settlement
-    Engine <==>|"Event bridge"| UI
-    Settlement -->|"Results"| Service
-    UI --> Service --> Storage
-```
+<table>
+  <tr>
+    <td width="33%" valign="top">
+      <h4>⚡ Live, for real</h4>
+      Top football leagues, the NBA, ATP &amp; WTA tennis and cricket, with scores that update every few seconds.
+    </td>
+    <td width="33%" valign="top">
+      <h4>🎯 Prices that move</h4>
+      Odds react to the match as it happens: a goal, a red card, a break of serve, a wicket.
+    </td>
+    <td width="33%" valign="top">
+      <h4>🛡️ Zero real money</h4>
+      A demo wallet in 56 currencies. Top it up, set any balance, and play with nothing at stake.
+    </td>
+  </tr>
+  <tr>
+    <td valign="top">
+      <h4>📲 Install it like an app</h4>
+      Add it to the home screen on Android and iPhone. It opens full screen, starts instantly, and works offline.
+    </td>
+    <td valign="top">
+      <h4>☁️ One account, every device</h4>
+      Sign in on your phone, laptop or a friend's tablet. Your balance and bets follow you, live.
+    </td>
+    <td valign="top">
+      <h4>🎬 Built to be shared</h4>
+      Turn any bet into an animated story for Instagram and WhatsApp, with a code friends scan to copy it.
+    </td>
+  </tr>
+</table>
 
 ---
 
-## Key Functional Modules
+## A first impression that sticks
 
-### 1. Real-Time Match Data
-| Sport | Coverage | Markets |
-| :--- | :--- | :--- |
-| **Football** | Premier League, LaLiga, Serie A, Bundesliga, Ligue 1, Champions League, Europa League, Indian Super League, EFL Championship, Eredivisie, Primeira Liga, Saudi Pro League, MLS, Liga MX, Brasileirão, Liga Profesional | 1X2, double chance, draw no bet, totals, Asian handicap (incl. quarter lines), both teams to score, correct score, winning margin, odd/even, next goal |
-| **Basketball** | NBA | Moneyline, spreads, totals, quarter winner |
-| **Tennis** | ATP & WTA singles | Match winner, set betting, total sets, set winner |
-| **Cricket** | Series covered by ESPN | Match winner (T20 & one-day) |
+<img align="right" src="docs/readme/splash.gif" alt="The CADNEX launch animation: liquid droplets merge into the CDNX logo" width="230">
 
-Data: live score, clock, period, goal and card timeline, team stats (where published), quarter and set lines, cricket innings and chase state.
+Every launch opens with a **liquid logo**. Scattered droplets spiral in, merge like liquid metal with a lime and violet sheen, and pour into the CDNX wordmark, which sharpens into the logo before the app glides in.
 
-### 2. Pricing & Live Odds
-* **Football**: goal expectations solved from the published 1X2 prices, then the remaining goals are Poisson given the real minute, score, red cards and game state.
-* **Basketball**: final margin and total modelled from the published spread and total, narrowing with the real game clock.
-* **Tennis**: per-game strength from the pre-match price or rankings; exact set and match probabilities from the real games and sets.
-* **Cricket**: chase model on runs needed, balls left and wickets in hand; projected total against par in the first innings.
-* **Margins**: bookmaker-style overround per market (4.5–16%).
+It runs on the phone's graphics chip, takes about two seconds, and never slows the app down. People who prefer reduced motion get a calm fade instead.
 
-### 3. Professional Wagering Suite & Bet Slip
-* **Bet Types**: Singles, Parlays (up to 20 legs) and System bets (2/3, 2/4, 3/4, Trixie, Patent, Yankee, Lucky 15, Canadian, Lucky 31, Heinz, Lucky 63).
-* **Live Cash Out**: full or partial, priced from live fair value minus a margin.
-* **Odds Change Policies**: accept any change, accept higher only, or always ask.
-* **Booking Codes**: share a slip as a short code.
-
-### 4. Multi-Currency Virtual Treasury & Ledger
-* **56 Currencies**: fiat (USD, EUR, GBP, INR, JPY …) and crypto (BTC, ETH, SOL, USDT …), each with its own decimals.
-* **Zero Floating-Point Drift**: all money is `BigInt` minor units.
-* **Full Audit Trail**: every bet, win, refund, cash out, bonus and conversion is a ledger entry.
-* **Demo Controls**: set, add or subtract any balance; simulated deposits and withdrawals.
-
-### 5. Responsible Gaming & Player Protection
-* Deposit, loss and stake limits per day, week or 30 days; lowering is instant, raising waits 24 hours.
-* Single-bet limit, session reminders, breaks (24 h, 7 d, 30 d) and six-month self-exclusion.
-* Mandatory 18+ check at onboarding.
-
-### 6. Design System & User Experience
-* Dark and light themes, frosted glass, ambient glow, dot-matrix scoreboards.
-* Physics-based motion with Framer Motion; respects reduced-motion settings.
-* Live-data badge showing the provider and how fresh the scores are.
-* Liquid launch screen: droplets spiral in, merge like liquid metal and pour into the CDNX wordmark, which locks into the exact vector logo (WebGL, with a simple fade for reduced motion).
-* Installable web app (PWA): manifest, Android maskable icons, iOS home-screen icon and launch screens, and a service worker that caches the app shell but never the live data.
+<br clear="right">
 
 ---
 
-## Technology Stack
+## Every screen, considered
 
-| Layer | Technologies |
-| :--- | :--- |
-| **Framework** | [Next.js 14.2](https://nextjs.org/) (App Router, Route Handlers) + [React 18.3](https://react.dev/) + [TypeScript 5.9](https://www.typescriptlang.org/) |
-| **Live Data** | ESPN public site API (unofficial, no key) |
-| **Styling** | [Tailwind CSS 3.4](https://tailwindcss.com/) + [Geist](https://vercel.com/font) |
-| **Animation** | [Framer Motion 14.6](https://www.framer.com/motion/) |
-| **State** | [Zustand 5.0](https://github.com/pmndrs/zustand) |
-| **Persistence** | [Dexie.js 4.4](https://dexie.org/) (IndexedDB) |
-| **Icons** | [Lucide React](https://lucide.dev/) |
-| **Cryptography** | Web Crypto API (PBKDF2-SHA-256) |
-| **Testing** | [Vitest 2.1](https://vitest.dev/): money maths, ledger, settlement, cash out, feed parsing, pricing |
+<p align="center">
+  <img src="docs/readme/phones.jpg" alt="Landing, live matches, my bets and wallet screens" width="100%">
+</p>
+
+- **Live match centre:** a dot-matrix scoreboard, momentum and pressure gauges, live stats and a timeline of key moments.
+- **Bet slip:** singles, parlays and system bets, quick stakes, a built-in keypad, and full or partial **cash out** at live value.
+- **My Bets:** every leg tracked live, with clear wins, losses and pending legs, and a receipt for every bet.
+- **Wallet:** a polished card with balance history, demo deposits and withdrawals, and instant currency switching.
+- **Light and dark themes**, with smooth, physics-based motion throughout.
+
+<p align="center">
+  <img src="docs/readme/desktop.jpg" alt="CADNEX on desktop: live matches with the bet slip open" width="100%">
+</p>
 
 ---
 
-## Getting Started
+## Share your wins
 
-### Prerequisites
-* **Node.js** 18.17 or higher
-* **npm** 9 or higher
+<p align="center">
+  <img src="docs/readme/stories.jpg" alt="Story cards for a live parlay and a winning bet, and the share screen" width="100%">
+</p>
 
-### Installation
+<img align="left" src="docs/readme/story.gif" alt="An animated winning story card" width="220">
+
+Any bet, or the picks in your slip, becomes a **6-second animated story** made right on the phone:
+
+- the odds or winnings **spin into place** like a slot machine;
+- a glass ticket rises in with a **light that travels round its border**;
+- live matches pulse with the **real score**;
+- winners get a lime glow and **confetti**.
+
+One tap opens **Instagram Stories** or **WhatsApp Status**. Each story carries a **QR code and link**: friends who scan it see your picks with today's prices and copy them into their own slip in one tap. Switches let you hide your stake or your username.
+
+<br clear="left">
+
+---
+
+## Install it like an app
+
+CADNEX installs straight from the browser. No app store needed.
+
+| | |
+|---|---|
+| **Android** | Tap **Install free** on the home screen banner, or **⋮ → Install app** in Chrome. |
+| **iPhone & iPad** | In Safari, tap **Share → Add to Home Screen**. |
+| **Desktop** | Click the install icon at the end of the address bar in Chrome or Edge. |
+
+Once installed it has its own icon, launch screen and home-screen shortcuts (Live, My bets, Wallet), opens full screen, and still opens with no signal.
+
+---
+
+## For the operator
+
+<p align="center">
+  <img src="docs/readme/admin.jpg" alt="The CADNEX admin control room" width="100%">
+</p>
+
+A private **control room** shows how CADNEX is doing:
+
+- **At a glance:** players, sign-ups, daily activity, bets placed, total staked and the house result.
+- **Trends:** 30-day charts of sign-ups and bets, the most-bet matches and the biggest wins.
+- **Players:** search everyone, see balances and history, **gift credits** or **ban** in a tap.
+- **Audit log:** every admin action is recorded.
+
+It's locked down properly. The panel is invisible to everyone else, needs the owner's password **plus a code from an authenticator app**, re-locks when idle, and every check is enforced by the database itself, not just the screen.
+
+---
+
+## Play responsibly, even with virtual money
+
+CADNEX is built around healthy play:
+
+- deposit, loss, stake and single-bet **limits**;
+- **reality checks** that show time played and session result;
+- **cool-off breaks** and **self-exclusion**;
+- an **18+ check** at the door, with clear "virtual funds" labelling everywhere.
+
+---
+
+## Trust and privacy
+
+- **Each player sees only their own data.** Accounts are protected in the database itself, not just in the app.
+- **Passwords are never stored by CADNEX.** Sign-in is handled by an industry-standard authentication service.
+- **Works offline, syncs when back.** Your device keeps a private copy so the app stays instant, and logging out removes it.
+- **No real money, ever.** There are no payments, no deposits and no withdrawals of real funds.
+
+---
+
+## Under the hood
+
+Built with a modern, lightweight stack and no paid data contracts:
+
+<p>
+  <img alt="Next.js" src="https://img.shields.io/badge/Next.js-black?logo=nextdotjs&logoColor=white">
+  <img alt="React" src="https://img.shields.io/badge/React-20232a?logo=react&logoColor=61DAFB">
+  <img alt="TypeScript" src="https://img.shields.io/badge/TypeScript-3178C6?logo=typescript&logoColor=white">
+  <img alt="Tailwind CSS" src="https://img.shields.io/badge/Tailwind-0f172a?logo=tailwindcss&logoColor=38BDF8">
+  <img alt="Framer Motion" src="https://img.shields.io/badge/Framer_Motion-111?logo=framer&logoColor=white">
+  <img alt="Supabase" src="https://img.shields.io/badge/Supabase-1c1c1c?logo=supabase&logoColor=3ECF8E">
+  <img alt="Vercel" src="https://img.shields.io/badge/Vercel-black?logo=vercel&logoColor=white">
+  <img alt="Tests" src="https://img.shields.io/badge/tests-51_passing-B5F23D">
+</p>
+
+- **One app, everywhere:** a single web codebase serves phones, tablets and desktops, and installs as an app.
+- **Real-time engine:** CADNEX prices every market itself from the live state of each match and settles bets automatically.
+- **Exact money:** every balance change is recorded in a permanent ledger, with no rounding errors in any currency.
+- **Cloud accounts:** Supabase for sign-in and storage, with live sync across a player's devices.
+- **Free to run:** hosted on Vercel's and Supabase's free plans.
+
+<details>
+<summary><b>Run it yourself</b></summary>
+<br>
+
+Requires Node.js 18.17 or newer.
+
 ```bash
-git clone https://github.com/VasavDotJS/cadnex-bet.git
-cd cadnex-bet
 npm install
+npm run dev        # http://localhost:3000
+npm run build && npm start
+npm test           # unit tests
 ```
 
-### Development Server
-```bash
-npm run dev
-```
-Open `http://localhost:3000`.
+Deploys to Vercel with no extra configuration. Database setup lives in `supabase/migrations/`.
 
-### Production
-```bash
-npm run build
-npm start
-```
-
-### Testing
-```bash
-npm test
-```
-
-### Mobile Wi-Fi Testing
-```bash
-npm run phone
-```
-Open `https://<your-computer-ip>:3000` on a phone on the same Wi-Fi and accept the one-time certificate warning. HTTPS is required for password hashing.
-
-### Checking the Live Feed
-After deploying, open **`/api/health`**. It lists every upstream feed, whether it answered, how many matches it returned, and a sample of live matches.
-
-### Offline Mode
-```bash
-CADNEX_FIXTURES=/path/to/fixtures npm start
-```
-Serves ESPN-shaped JSON files (`eng.1.json`, `nba.json`, `atp.json`, `cricket.json`) instead of the network. `src/live/fixtures.ts` builds them.
-
-### Deploying on Vercel
-`vercel.json` tells Vercel this is a Next.js app, so no project settings or environment variables are needed.
+</details>
 
 ---
 
-## Install on Your Phone
+## What's next
 
-Open [cadnex.vercel.app](https://cadnex.vercel.app), then:
-
-* **Android (Chrome):** tap **Install free** on the home screen banner, or open the **⋮** menu and choose **Install app**.
-* **iPhone / iPad (Safari):** tap **Share**, then **Add to Home Screen**, then **Add**.
-* **Desktop (Chrome / Edge):** click the install icon at the right of the address bar.
-
-The app shows the same steps under **Profile → Install the app**.
-
----
-
-## Directory Structure
-
-```
-cadnex-bet/
-├── app/
-│   ├── api/
-│   │   ├── feed/route.ts      # All matches, normalised
-│   │   ├── event/route.ts     # One match (settlement & detail)
-│   │   └── health/route.ts    # Feed status page
-│   ├── layout.tsx             # Fonts, theme, metadata, iOS app tags
-│   ├── manifest.ts            # Web app manifest (install on Android / desktop)
-│   ├── page.tsx               # Loads the client app
-│   └── globals.css            # Design tokens & utilities
-├── src/
-│   ├── feed/                  # ESPN fetching, normalisers, shared types
-│   ├── live/                  # Live engine & pricing models per sport (+ tests, fixtures)
-│   ├── engine/                # Worker host, client, protocol, market helpers
-│   ├── core/                  # Bridge: engine ↔ app, settlement, notifications
-│   ├── components/            # UI system: Crest, DotMatrix, OddsButton, Sheet, FeedBadge …
-│   ├── features/              # auth, bets, event, help, home, notifications, profile,
-│   │                          # responsible, search, shell, slip, sports, wallet
-│   ├── data/                  # Competition catalogue, club ratings
-│   ├── db/                    # Dexie schema
-│   ├── lib/                   # Money, odds, currencies, crypto
-│   ├── admin/                 # Private admin panel (2FA, audited actions)
-│   ├── cloud/                 # Supabase client & device ⇄ cloud sync
-│   ├── pwa/                   # Service worker registration & install prompt
-│   ├── share/                 # Animated story renderer, MP4 export, share links
-│   ├── splash/                # Liquid launch screen (WebGL)
-│   ├── services/              # Auth, wallet, bets, stats, rewards
-│   └── store/                 # Zustand stores
-├── supabase/migrations/       # Database tables, row level security, sign-up trigger
-├── public/
-│   ├── sw.js                  # Service worker (offline app shell)
-│   ├── brand/                 # CDNX / CADNEX logo (SVG)
-│   ├── icons/                 # App icons (any + maskable)
-│   └── splash/                # iOS launch screens
-├── next.config.mjs
-├── tailwind.config.mjs
-├── tsconfig.json
-└── vitest.config.ts
-```
+- [ ] **Leaderboards**: weekly rankings by profit, win rate and biggest win
+- [ ] **Private leagues**: invite friends and compete on your own table
+- [ ] **Bet Builder**: combine picks from the same match
+- [ ] **Anytime goalscorer** markets
+- [ ] **Push notifications** for goals and settled bets
+- [ ] **Achievements** and streaks
 
 ---
 
-## Roadmap
+<p align="center">
+  <sub>
+    CADNEX uses virtual money only and is for adults (18+). Fixtures and scores come from public sports data and can run a little behind live TV.<br>
+    CADNEX is not affiliated with any league, team, player or data provider.
+  </sub>
+</p>
 
-* [ ] **Bet Builder (Same-Game Parlay)** with correlation pricing and contradiction blocking.
-* [ ] **Promotions**: welcome bonus, odds boosts, free bets with wagering terms.
-* [ ] **Shared Leaderboards** across friends (needs a small backend).
-* [ ] **More Markets**: corners, cards and goalscorers when a free source can settle them.
-* [ ] **Esports** if a free live source becomes available.
-* [ ] **Internationalisation (i18n)**.
-
----
-
-## Data & Responsible Gaming Disclaimer
-
-> **IMPORTANT**: CADNEX is for entertainment and software demonstration only.
->
-> * **No Real Money**: users cannot deposit, wager or withdraw real-world money.
-> * **Real Data, Virtual Stakes**: fixtures and scores come from ESPN's public data and can run up to a minute behind live TV. CADNEX has no affiliation with ESPN or any league, team, player or bookmaker. ESPN's endpoints are unofficial and may change.
-> * **Protection First**: built-in tools enforce personal play limits.
-
----
-
-## Author & Maintainer
-
-* **Vasav P Ramesh** ([@VasavDotJS](https://github.com/VasavDotJS))
-* Repository: [https://github.com/VasavDotJS/cadnex-bet](https://github.com/VasavDotJS/cadnex-bet)
-
----
-
-## License
-
-This software and its documentation are proprietary. All rights reserved. For licensing inquiries, commercial partnerships, or custom integrations, please contact the maintainer.
+<p align="center">
+  Made by <b>Vasav P Ramesh</b> · <a href="https://github.com/VasavDotJS">@VasavDotJS</a><br>
+  <sub>© CADNEX. All rights reserved. For partnerships or licensing, get in touch.</sub>
+</p>
