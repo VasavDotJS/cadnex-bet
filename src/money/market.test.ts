@@ -67,3 +67,25 @@ describe('server pricing matches the live engine', () => {
     expect(quote(p, 'ou:2.5', 'o').available).toBe(false);
   });
 });
+
+describe('cup ties without bookmaker odds', () => {
+  const CDR = LEAGUES.find((l) => l.id === 'esp.copa_del_rey')!;
+  const tie = (homeTier?: number, awayTier?: number) => {
+    const ev = normalizeScoreboard(CDR, { events: [soccerEvent({ id: '950', start: NOW + 3 * 86_400_000, state: 'pre', home: ['86', 'Real Madrid', 'RMA', 'ffffff'], away: ['3842', 'CD Tenerife', 'TEN', '0033aa'] })] })[0];
+    if (homeTier) ev.home = { ...ev.home, tier: homeTier };
+    if (awayTier) ev.away = { ...ev.away, tier: awayTier };
+    return prepare(ev, NOW)!;
+  };
+  it('prices a top-flight side as a clear favourite over a lower-division one', () => {
+    const p = tie(1, 2);
+    expect(p.mem.pre?.src).toBe('tier');
+    expect(quote(p, '1x2', '1').odds).toBeLessThan(1.6);
+    expect(quote(p, '1x2', '2').odds).toBeGreaterThan(4.5);
+    const bigger = tie(1, 3);
+    expect(quote(bigger, '1x2', '1').odds).toBeLessThan(quote(p, '1x2', '1').odds);
+  });
+  it('keeps a lower-division home side the underdog', () => {
+    const ev = tie(2, 1);
+    expect(quote(ev, '1x2', '1').odds).toBeGreaterThan(quote(ev, '1x2', '2').odds);
+  });
+});

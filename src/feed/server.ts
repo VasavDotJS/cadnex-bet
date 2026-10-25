@@ -97,7 +97,9 @@ interface Job {
 
 /** How often to refresh a day: live days fast, tomorrow often, the rest of the week slowly. */
 const ttlFor = (offset: number) => (offset <= 0 ? LIVE_TTL : offset === 1 ? 60 : FUTURE_TTL);
-const DAYS = [-1, 0, 1, 2, 3, 4, 5, 6, 7];
+/** yesterday to two weeks ahead, so the next European matchday is always on the board */
+const HORIZON_DAYS = 15;
+const DAYS = Array.from({ length: HORIZON_DAYS }, (_, i) => i - 1);
 
 /**
  * ESPN's scoreboards now answer one day at a time (date ranges get HTTP 400). Football uses
@@ -187,15 +189,52 @@ export async function loadFeed(): Promise<FeedResponse> {
     for (const ev of events) byId.set(ev.id, ev);
   })();
   await Promise.all([...work, cricket]);
-  // keep a sensible window: last 36 h of results, everything live, the next 7 days
-  const events = [...byId.values()].filter((e) => e.status === 'LIVE' || (e.startTime > now - 36 * 3_600_000 && e.startTime < now + 8 * 86_400_000));
+  // keep a sensible window: last 36 h of results, everything live, the next two weeks
+  const events = await withDivisions([...byId.values()].filter((e) => e.status === 'LIVE' || (e.startTime > now - 36 * 3_600_000 && e.startTime < now + HORIZON_DAYS * 86_400_000)));
   events.sort((a, b) => a.startTime - b.startTime);
   sources.sort((a, b) => a.league.localeCompare(b.league));
   return { updatedAt: now, provider: 'ESPN', sources, events };
 }
 
+/** Team id → division for a cup's country (from ESPN's team lists, refreshed twice a day). */
+async function divisions(cup: League): Promise<Map<string, number> | null> {
+  if (!cup.divisions?.length) return null;
+  const lists = await Promise.all(cup.divisions.map((slug) => getJson(`${SITE}/soccer/${slug}/teams`, 12 * 3600)));
+  if (lists.some((r) => !r.ok)) return null;
+  const tier = new Map<string, number>();
+  lists.forEach((r, i) => {
+    const teams = r.json?.sports?.[0]?.leagues?.[0]?.teams;
+    for (const t of Array.isArray(teams) ? teams : []) {
+      const id = String(t?.team?.id ?? '');
+      if (id && !tier.has(id)) tier.set(id, i + 1);
+    }
+  });
+  return tier.size ? tier : null;
+}
+
+/** Mark each side's division on domestic cup ties, so they're priced by the gap between leagues. */
+export async function withDivisions<T extends FeedEvent | null>(events: T[]): Promise<T[]> {
+  const cups = new Map<string, Promise<Map<string, number> | null>>();
+  for (const ev of events) {
+    if (!ev) continue;
+    const league = LEAGUES.find((l) => l.id === ev.leagueId);
+    if (!league?.divisions) continue;
+    if (!cups.has(league.id)) cups.set(league.id, divisions(league));
+    const tier = await cups.get(league.id)!;
+    if (!tier) continue;
+    const below = league.divisions.length + 1; // not in a followed division: lower league or amateur
+    ev.home = { ...ev.home, tier: tier.get(ev.home.id) ?? below };
+    ev.away = { ...ev.away, tier: tier.get(ev.away.id) ?? below };
+  }
+  return events;
+}
+
 /** One match by our event key, used to settle bets on matches that left the main window. */
 export async function loadEvent(id: string): Promise<FeedEvent | null> {
+  return (await withDivisions([await findEvent(id)]))[0];
+}
+
+async function findEvent(id: string): Promise<FeedEvent | null> {
   const key = parseEventKey(id);
   if (!key) return null;
   const { leagueId, espnId, ymd: day } = key;
@@ -240,5 +279,5 @@ export async function loadDetail(id: string): Promise<FeedEvent | null> {
   const s = await getJson(`${SITE}/${league.espn}/summary?event=${key.espnId}`, LIVE_TTL);
   if (!s.ok) return loadEvent(id);
   const ev = normalizeSummary(league, s.json);
-  return ev ? { ...ev, id } : loadEvent(id);
+  return ev ? (await withDivisions([{ ...ev, id }]))[0] : loadEvent(id);
 }

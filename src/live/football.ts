@@ -49,6 +49,9 @@ export function solveLambdas(pH: number, pA: number, total = 2.65): { lh: number
   return { lh: best.lh, la: best.la };
 }
 
+/** Strength by division (index = tier): a second-tier side is roughly a goal worse per game. */
+const TIER_STRENGTH = [0, 0, -0.9, -1.6, -2.2];
+
 function prematch(ev: FeedEvent): Record<string, number | string> {
   const o = ev.odds;
   const p = o ? implied([o.home, o.draw, o.away]) : null;
@@ -66,6 +69,12 @@ function prematch(ev: FeedEvent): Record<string, number | string> {
   }
   const sh = recordStrength(ev.home.record, ev.home.form) ?? 0;
   const sa = recordStrength(ev.away.record, ev.away.form) ?? 0;
+  // cup ties between divisions: the gap between leagues outweighs everything else we know
+  if (ev.home.tier || ev.away.tier) {
+    const th = TIER_STRENGTH[Math.min(Math.max(ev.home.tier ?? 1, 1), 4)] + 0.5 * sh;
+    const ta = TIER_STRENGTH[Math.min(Math.max(ev.away.tier ?? 1, 1), 4)] + 0.5 * sa;
+    return { lh: 1.42 * Math.exp(0.45 * (th - ta)), la: 1.12 * Math.exp(0.45 * (ta - th)), src: 'tier' };
+  }
   return { lh: 1.42 * Math.exp(0.45 * (sh - sa)), la: 1.12 * Math.exp(0.45 * (sa - sh)), src: sh || sa ? 'form' : 'default' };
 }
 

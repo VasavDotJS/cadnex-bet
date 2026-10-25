@@ -27,6 +27,8 @@ export interface League {
   espn?: string;
   /** ESPN's numeric league id (matches in the all-football scoreboard carry it in their uid) */
   lid?: string;
+  /** domestic cups: the divisions (top first) used to tell how strong each side is */
+  divisions?: string[];
   kind: 'scoreboard' | 'tennis' | 'cricket';
 }
 
@@ -91,6 +93,17 @@ export const LEAGUES: League[] = [
 ];
 
 /** ESPN numeric league id → our football league. */
+const cup = (id: string, divisions: string[]) => {
+  const l = FOOTBALL.find((x) => x.id === id);
+  if (l) l.divisions = divisions;
+};
+cup('eng.fa', ['eng.1', 'eng.2', 'eng.3']);
+cup('eng.league_cup', ['eng.1', 'eng.2', 'eng.3']);
+cup('esp.copa_del_rey', ['esp.1', 'esp.2']);
+cup('ita.coppa_italia', ['ita.1', 'ita.2']);
+cup('ger.dfb_pokal', ['ger.1', 'ger.2']);
+cup('fra.coupe_de_france', ['fra.1', 'fra.2']);
+
 export const FOOTBALL_BY_LID = new Map(FOOTBALL.map((l) => [l.lid!, l]));
 
 const registry = new Map<string, League>(LEAGUES.map((l) => [l.id, l]));
