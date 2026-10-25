@@ -61,7 +61,10 @@ async function fixture(url: string, t0: number): Promise<{ ok: boolean; status: 
   const { readFile } = await import('node:fs/promises');
   const m = url.match(/sports\/[a-z]+\/([^/]+)\/(scoreboard|summary)/);
   const name = url.includes('sport=cricket') ? 'cricket' : m ? m[1] : 'unknown';
-  if (url.includes('dates=') && !url.includes(`dates=${dayOffset(Date.now(), -1)}`) && m?.[2] === 'scoreboard' && !/tennis/.test(url)) {
+  // recorded matches belong to yesterday: answer only queries whose dates cover it, so none is listed twice
+  const dates = url.match(/dates=(\d{8})(?:-(\d{8}))?/);
+  const day = dayOffset(Date.now(), -1);
+  if (dates && !(dates[1] <= day && day <= (dates[2] ?? dates[1])) && m?.[2] === 'scoreboard' && !/tennis/.test(url)) {
     return { ok: true, status: 200, json: { events: [] }, ms: Date.now() - t0 };
   }
   try {

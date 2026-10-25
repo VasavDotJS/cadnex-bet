@@ -1,18 +1,33 @@
-/** Demo wallet. Every balance change is a transaction that writes an immutable ledger entry. */
+/**
+ * Demo wallet. Every balance change writes an immutable ledger entry. For signed-in players
+ * the server makes the change (see src/money); the device keeps the result.
+ */
 import { db, LedgerRow, LedgerType, uid, WalletRow } from '../db/db';
-import { currency } from '../lib/currencies';
-import { convertMinor, formatMoney, fxRate, Minor, pow10, units } from '../lib/money';
+import { Minor } from '../lib/money';
 import { stamp } from '../lib/time';
+import { Ctx, MAX_UNITS, maxBalance, WalletError, walletOp, WalletOp } from '../money/core';
+import { MoneyError, remoteMoney, serverMoney } from '../money/remote';
 
-export class WalletError extends Error {}
+export { MAX_UNITS, maxBalance, WalletError };
 
-export const MAX_UNITS = 1_000_000_000n;
-
-export function maxBalance(code: string): Minor {
-  return units(MAX_UNITS, code);
+export function localCtx(userId: string): Ctx {
+  return { userId, now: Date.now(), id: uid, stamp };
 }
 
-/** Apply a signed change inside an open transaction. */
+/** Turn a server refusal into the error type the screens expect. */
+export function asWalletError(e: unknown): never {
+  if (e instanceof MoneyError) throw new WalletError(e.message, e.code);
+  throw e;
+}
+
+/** Write a computed change to the device (local mode only). */
+export async function commitLocal(change: { wallet: WalletRow; ledger: LedgerRow[]; bets?: import('../db/db').BetRow[] }): Promise<void> {
+  await db.wallets.put(change.wallet);
+  for (const l of change.ledger) await db.ledger.add(l);
+  for (const b of change.bets ?? []) await db.bets.put(b);
+}
+
+/** Apply a signed change inside an open transaction (local mode). */
 export async function applyChange(
   userId: string,
   delta: Minor,
@@ -24,13 +39,10 @@ export async function applyChange(
   const cur = opts.currency ?? w.currency;
   if (cur !== w.currency) throw new WalletError(`This needs ${cur}, but your wallet is in ${w.currency}.`);
   const next = BigInt(w.balanceMinor) + delta;
-  if (next < 0n && !opts.allowNegative) throw new WalletError('Insufficient balance.');
-  if (next > maxBalance(w.currency)) throw new WalletError(`The demo balance is capped at ${formatMoney(maxBalance(w.currency), w.currency, { noDecimals: true })}.`);
+  if (next < 0n && !opts.allowNegative) throw new WalletError('Insufficient balance.', 'INSUFFICIENT');
+  if (next > maxBalance(w.currency)) throw new WalletError('The demo balance is capped.');
   const wallet: WalletRow = { ...w, balanceMinor: next.toString(), updatedAt: Date.now() };
-  const entry: LedgerRow = {
-    id: opts.id ?? uid('l_'), userId, type, amountMinor: delta.toString(), balanceAfterMinor: next.toString(), currency: w.currency,
-    refId: opts.refId, note: opts.note, createdAt: stamp(),
-  };
+  const entry: LedgerRow = { id: opts.id ?? uid('l_'), userId, type, amountMinor: delta.toString(), balanceAfterMinor: next.toString(), currency: w.currency, refId: opts.refId, note: opts.note, createdAt: stamp() };
   await db.wallets.put(wallet);
   await db.ledger.add(entry);
   return { wallet, entry };
@@ -45,6 +57,22 @@ export interface LedgerFilter {
   limit?: number;
 }
 
+/** Run a wallet operation on the server (signed in) or on the device. */
+async function run(userId: string, op: WalletOp, lastDailyAt = 0): Promise<WalletRow> {
+  if (remoteMoney()) {
+    const r = await serverMoney('wallet', { op }).catch(asWalletError);
+    if (r.wallet) return r.wallet;
+    return walletService.getWallet(userId);
+  }
+  return db.transaction('rw', [db.wallets, db.ledger], async () => {
+    const w = await walletService.getWallet(userId);
+    const change = walletOp(localCtx(userId), w, op, lastDailyAt);
+    if (!change.ledger.length && change.wallet.currency === w.currency) return w;
+    await commitLocal(change);
+    return change.wallet;
+  });
+}
+
 export const walletService = {
   async getWallet(userId: string): Promise<WalletRow> {
     const w = await db.wallets.get(userId);
@@ -53,51 +81,32 @@ export const walletService = {
   },
 
   async setBalance(userId: string, target: Minor): Promise<WalletRow> {
-    return db.transaction('rw', [db.wallets, db.ledger], async () => {
-      const w = await this.getWallet(userId);
-      if (target < 0n) throw new WalletError('The balance cannot be negative.');
-      const delta = target - BigInt(w.balanceMinor);
-      if (delta === 0n) return w;
-      return (await applyChange(userId, delta, 'DEMO_ADJUST', { note: 'Balance set' })).wallet;
-    });
+    if (target < 0n) throw new WalletError('The balance cannot be negative.');
+    return run(userId, { kind: 'set', target: target.toString() });
   },
 
   async adjust(userId: string, delta: Minor): Promise<WalletRow> {
-    return db.transaction('rw', [db.wallets, db.ledger], async () => (await applyChange(userId, delta, 'DEMO_ADJUST', { note: delta > 0n ? 'Demo top-up' : 'Demo reduction' })).wallet);
+    return run(userId, { kind: 'adjust', delta: delta.toString() });
   },
 
   async deposit(userId: string, amount: Minor, method: string): Promise<WalletRow> {
     if (amount <= 0n) throw new WalletError('Enter an amount above zero.');
-    return db.transaction('rw', [db.wallets, db.ledger], async () => (await applyChange(userId, amount, 'DEPOSIT', { note: `Demo deposit via ${method}` })).wallet);
+    return run(userId, { kind: 'deposit', amount: amount.toString(), method });
   },
 
   async withdraw(userId: string, amount: Minor, method: string): Promise<WalletRow> {
     if (amount <= 0n) throw new WalletError('Enter an amount above zero.');
-    return db.transaction('rw', [db.wallets, db.ledger], async () => (await applyChange(userId, -amount, 'WITHDRAW', { note: `Demo withdrawal to ${method}` })).wallet);
+    return run(userId, { kind: 'withdraw', amount: amount.toString(), method });
   },
 
   /** Switch currency, either converting at the bundled demo rate or keeping the same number. */
   async changeCurrency(userId: string, to: string, mode: 'convert' | 'keep'): Promise<WalletRow> {
-    return db.transaction('rw', [db.wallets, db.ledger], async () => {
-      const w = await this.getWallet(userId);
-      if (w.currency === to) return w;
-      const bal = BigInt(w.balanceMinor);
-      const df = currency(w.currency).decimals;
-      const dt = currency(to).decimals;
-      let next = mode === 'convert' ? convertMinor(bal, w.currency, to) : (bal * pow10(dt)) / pow10(df);
-      if (next > maxBalance(to)) next = maxBalance(to);
-      const rate = fxRate(w.currency, to);
-      const note = mode === 'convert'
-        ? `Converted ${formatMoney(bal, w.currency)} at 1 ${w.currency} = ${rate < 0.001 ? rate.toPrecision(4) : rate.toFixed(rate < 1 ? 6 : 4)} ${to}`
-        : `Switched from ${w.currency}, kept the number`;
-      const wallet: WalletRow = { ...w, currency: to, balanceMinor: next.toString(), updatedAt: Date.now() };
-      await db.wallets.put(wallet);
-      await db.ledger.add({
-        id: uid('l_'), userId, type: 'CURRENCY_CONVERT', amountMinor: next.toString(), balanceAfterMinor: next.toString(), currency: to,
-        note, createdAt: stamp(),
-      });
-      return wallet;
-    });
+    return run(userId, { kind: 'currency', to, mode });
+  },
+
+  /** The once-a-day reward. */
+  async claimDaily(userId: string, lastDailyAt: number): Promise<WalletRow> {
+    return run(userId, { kind: 'daily' }, lastDailyAt);
   },
 
   async getLedger(userId: string, f: LedgerFilter = {}): Promise<LedgerRow[]> {

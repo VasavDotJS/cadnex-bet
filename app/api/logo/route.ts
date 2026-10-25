@@ -34,7 +34,7 @@ async function get(url: string): Promise<{ body: ArrayBuffer; type: string } | n
 const deny = (status: number, msg: string) => new NextResponse(msg, { status, headers: { 'Cache-Control': 'public, s-maxage=3600', 'Content-Type': 'text/plain; charset=utf-8' } });
 
 export async function GET(req: NextRequest) {
-  const limited = rateLimit(req, 'logo', 400);
+  const limited = await rateLimit(req, 'logo', 400);
   if (limited) return limited;
   const u = cleanLogo(req.nextUrl.searchParams.get('u'));
   if (!u) return deny(400, 'bad logo url');

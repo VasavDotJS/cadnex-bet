@@ -1,4 +1,4 @@
-import { AnimatePresence, motion } from 'framer-motion';
+import { AnimatePresence, MotionConfig, motion } from 'framer-motion';
 import { Component, lazy, ReactNode, Suspense, useEffect, useRef } from 'react';
 import { HashRouter, Navigate, Route, Routes, useLocation } from 'react-router-dom';
 import { startBridge } from './core/bridge';
@@ -152,6 +152,16 @@ function AppRoutes() {
   return bare ? routes : <Shell>{routes}</Shell>;
 }
 
+/**
+ * This page's CSP nonce (set per request on the server). Animations that need a <style>
+ * element use it, so the strict policy can keep refusing every other inline style.
+ */
+function pageNonce(): string | undefined {
+  if (typeof document === 'undefined') return undefined;
+  const s = document.querySelector<HTMLScriptElement>('script[nonce]');
+  return s?.nonce || s?.getAttribute('nonce') || undefined;
+}
+
 export function App() {
   const booted = useSession((s) => s.booted);
   useTheme();
@@ -166,6 +176,7 @@ export function App() {
   if (!booted) return null; // the launch screen is showing
   return (
     <ErrorBoundary>
+      <MotionConfig nonce={pageNonce()}>
       <HashRouter>
         <AppRoutes />
         <SlipPill />
@@ -178,6 +189,7 @@ export function App() {
         <WrappedPlayer />
         <Toasts />
       </HashRouter>
+      </MotionConfig>
     </ErrorBoundary>
   );
 }

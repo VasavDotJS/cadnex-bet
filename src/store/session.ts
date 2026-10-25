@@ -54,7 +54,15 @@ export const useSession = create<SessionState>((set, get) => {
         throw new AuthError('form', "Couldn't load your account. Check your connection and try again.");
       }
     }
-    if (fresh) await authService.openAccount(user);
+    if (fresh) {
+      try {
+        await authService.openAccount(user);
+      } catch {
+        await stopSync(0);
+        set({ user: null });
+        throw new AuthError('form', "Couldn't open your wallet. Check your connection and try again.");
+      }
+    }
     let settings = await db.settings.get(user.id);
     if (!settings) {
       settings = defaultSettings(user.id);
