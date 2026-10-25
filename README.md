@@ -27,7 +27,7 @@ It's built to feel like a flagship app, not a demo: fluid motion, a refined dark
   <tr>
     <td width="33%" valign="top">
       <h4>⚡ Live, for real</h4>
-      Top football leagues, the NBA, ATP &amp; WTA tennis and cricket, with scores that update every few seconds.
+      40+ football competitions (LaLiga, the Premier League, the Champions League, the ISL and more), the NBA, ATP &amp; WTA tennis and cricket, with scores that update every few seconds.
     </td>
     <td width="33%" valign="top">
       <h4>🎯 Prices that move</h4>
@@ -188,7 +188,7 @@ Built with a modern, lightweight stack and no paid data contracts:
   <img alt="Framer Motion" src="https://img.shields.io/badge/Framer_Motion-111?logo=framer&logoColor=white">
   <img alt="Supabase" src="https://img.shields.io/badge/Supabase-1c1c1c?logo=supabase&logoColor=3ECF8E">
   <img alt="Vercel" src="https://img.shields.io/badge/Vercel-black?logo=vercel&logoColor=white">
-  <img alt="Tests" src="https://img.shields.io/badge/tests-86_passing-B5F23D">
+  <img alt="Tests" src="https://img.shields.io/badge/tests-89_passing-B5F23D">
 </p>
 
 - **One app, everywhere:** a single web codebase serves phones, tablets and desktops, and installs as an app.
