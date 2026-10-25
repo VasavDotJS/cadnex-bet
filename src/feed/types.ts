@@ -24,6 +24,8 @@ export interface FeedSide {
   record?: string;
   form?: string;
   rank?: number;
+  /** in a domestic cup: the team's division (1 = top flight; beyond the followed divisions = one more) */
+  tier?: number;
 }
 
 export type FeedIncidentKind = 'goal' | 'owngoal' | 'penalty' | 'misspen' | 'yellow' | 'red' | 'sub' | 'info';

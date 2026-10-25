@@ -137,7 +137,7 @@ export class LiveEngine {
     it.lastSeen = now;
 
     // pre-match strengths: follow the odds until kick-off, then freeze
-    const preKey = JSON.stringify([ev.odds ?? null, ev.home.record, ev.away.record, ev.home.rank, ev.away.rank]);
+    const preKey = JSON.stringify([ev.odds ?? null, ev.home.record, ev.away.record, ev.home.rank, ev.away.rank, ev.home.tier, ev.away.tier]);
     if (ev.status === 'SCHEDULED' ? mem.preKey !== preKey : !mem.pre) {
       mem.pre = model.prematch(ev);
       mem.preKey = preKey;
