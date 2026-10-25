@@ -3,7 +3,7 @@
  * handlers. Responses are cached by Next's data cache, so every visitor shares the same
  * few upstream requests: live windows refresh every 15 s, far-ahead fixtures every 10 min.
  */
-import { LEAGUES, League } from '../data/leagues';
+import { FOOTBALL, FOOTBALL_BY_LID, LEAGUES, League } from '../data/leagues';
 import { normalizeCricketHeader, normalizeScoreboard, normalizeSummary, normalizeTennis } from './espn';
 import { FeedEvent, FeedResponse, FeedSource, parseEventKey } from './types';
 
@@ -86,24 +86,62 @@ async function fixture(url: string, t0: number): Promise<{ ok: boolean; status: 
 }
 
 interface Job {
-  league: League;
+  /** a single league, or every followed football league at once */
+  league: League | 'football';
   url: string;
   ttl: number;
   label: string;
+  /** for football days: per-league URLs to try if the all-leagues request fails */
+  fallback?: { league: League; url: string }[];
 }
 
+/** How often to refresh a day: live days fast, tomorrow often, the rest of the week slowly. */
+const ttlFor = (offset: number) => (offset <= 0 ? LIVE_TTL : offset === 1 ? 60 : FUTURE_TTL);
+const DAYS = [-1, 0, 1, 2, 3, 4, 5, 6, 7];
+
+/**
+ * ESPN's scoreboards now answer one day at a time (date ranges get HTTP 400). Football uses
+ * the all-competitions scoreboard, so a whole day of every league is a single request.
+ */
 function jobs(now: number): Job[] {
   const out: Job[] = [];
+  for (const offset of DAYS) {
+    const day = dayOffset(now, offset);
+    out.push({
+      league: 'football',
+      url: `${SITE}/soccer/all/scoreboard?dates=${day}&limit=1000`,
+      ttl: ttlFor(offset),
+      label: `football ${day}`,
+      fallback: offset >= -1 && offset <= 1 ? FOOTBALL.map((l) => ({ league: l, url: `${SITE}/${l.espn}/scoreboard?dates=${day}` })) : undefined,
+    });
+  }
   for (const l of LEAGUES) {
-    if (!l.espn) continue;
+    if (!l.espn || l.sport === 'football') continue;
     if (l.kind === 'tennis') {
       out.push({ league: l, url: `${SITE}/${l.espn}/scoreboard`, ttl: LIVE_TTL, label: l.id });
       continue;
     }
-    // yesterday → tomorrow at live cadence, the rest of the week slowly
-    out.push({ league: l, url: `${SITE}/${l.espn}/scoreboard?dates=${dayOffset(now, -1)}-${dayOffset(now, 1)}&limit=300`, ttl: LIVE_TTL, label: `${l.id} (today)` });
-    out.push({ league: l, url: `${SITE}/${l.espn}/scoreboard?dates=${dayOffset(now, 2)}-${dayOffset(now, 7)}&limit=300`, ttl: FUTURE_TTL, label: `${l.id} (this week)` });
+    for (const offset of DAYS) {
+      const day = dayOffset(now, offset);
+      out.push({ league: l, url: `${SITE}/${l.espn}/scoreboard?dates=${day}`, ttl: ttlFor(offset), label: `${l.id} ${day}` });
+    }
   }
+  return out;
+}
+
+/** Split the all-football scoreboard into our leagues (by the league id in each match's uid). */
+export function normalizeFootballDay(payload: unknown): FeedEvent[] {
+  const groups = new Map<League, unknown[]>();
+  const list = (payload as { events?: unknown[] } | null)?.events;
+  for (const e of Array.isArray(list) ? list : []) {
+    const lid = /(?:^|~)l:(\d+)/.exec(String((e as { uid?: unknown })?.uid ?? ''))?.[1];
+    const league = lid ? FOOTBALL_BY_LID.get(lid) : undefined;
+    if (!league) continue; // a competition we don't price (youth, college, women's reserve leagues…)
+    if (!groups.has(league)) groups.set(league, []);
+    groups.get(league)!.push(e);
+  }
+  const out: FeedEvent[] = [];
+  for (const [league, events] of groups) out.push(...normalizeScoreboard(league, { events }));
   return out;
 }
 
@@ -117,10 +155,19 @@ export async function loadFeed(): Promise<FeedResponse> {
     let error = r.error;
     if (r.ok) {
       try {
-        events = j.league.kind === 'tennis' ? normalizeTennis(j.league, r.json) : normalizeScoreboard(j.league, r.json);
+        events = j.league === 'football' ? normalizeFootballDay(r.json) : j.league.kind === 'tennis' ? normalizeTennis(j.league, r.json) : normalizeScoreboard(j.league, r.json);
       } catch (e) {
         error = `parse: ${(e as Error).message}`;
       }
+    }
+    if ((!r.ok || error) && j.fallback) {
+      // the all-leagues scoreboard failed: ask each league for the day instead
+      const parts = await Promise.all(j.fallback.map(async (f) => {
+        const fr = await getJson(f.url, j.ttl);
+        return fr.ok ? normalizeScoreboard(f.league, fr.json) : [];
+      }));
+      events = parts.flat();
+      error = `${error ?? 'failed'} (per-league fallback: ${events.length})`;
     }
     sources.push({ league: j.label, url: j.url, ok: r.ok && !error, status: r.status, count: events.length, error, ms: r.ms });
     for (const ev of events) byId.set(ev.id, ev);
@@ -168,11 +215,12 @@ export async function loadEvent(id: string): Promise<FeedEvent | null> {
   }
   const league = LEAGUES.find((l) => l.id === leagueId);
   if (!league?.espn) return null;
-  // look in the scoreboard for the match day (±1 day for time zones), then fall back to summary
+  // look in the scoreboard for the match day, then the days either side (time zones), then the summary
   const d = Date.UTC(Number(day.slice(0, 4)), Number(day.slice(4, 6)) - 1, Number(day.slice(6, 8)));
-  const range = `${dayOffset(d, -1)}-${dayOffset(d, 1)}`;
-  const r = await getJson(`${SITE}/${league.espn}/scoreboard?dates=${league.kind === 'tennis' ? day : range}&limit=300`, LIVE_TTL);
-  if (r.ok) {
+  const days = league.kind === 'tennis' ? [day] : [day, dayOffset(d, -1), dayOffset(d, 1)];
+  for (const dd of days) {
+    const r = await getJson(`${SITE}/${league.espn}/scoreboard?dates=${dd}`, LIVE_TTL);
+    if (!r.ok) continue;
     const list = league.kind === 'tennis' ? normalizeTennis(league, r.json) : normalizeScoreboard(league, r.json);
     const hit = list.find((e) => e.espnId === espnId);
     if (hit) return { ...hit, id };
