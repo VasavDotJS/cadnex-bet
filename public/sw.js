@@ -5,7 +5,7 @@
  * - Live data (/api/*) is never cached here: scores and odds always come from the network.
  * Bump VERSION to drop old caches.
  */
-const VERSION = 'v3';
+const VERSION = 'v4';
 const SHELL = `cdnx-shell-${VERSION}`;
 const ASSETS = `cdnx-assets-${VERSION}`;
 const PRECACHE = ['/', '/manifest.webmanifest', '/icons/icon-192.png', '/icons/icon-512.png', '/apple-touch-icon.png', '/brand/cadnex-lockup-white.svg'];
