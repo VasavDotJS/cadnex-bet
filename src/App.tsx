@@ -166,7 +166,7 @@ export function App() {
   if (!booted) return null; // the launch screen is showing
   return (
     <ErrorBoundary>
-      <HashRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+      <HashRouter>
         <AppRoutes />
         <SlipPill />
         <SlipSheet />
