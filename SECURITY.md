@@ -13,6 +13,7 @@ CADNEX uses virtual money only, but accounts, sessions and the admin panel are p
 
 **Accounts and data**
 - Sign-in is handled by Supabase Auth. CADNEX never sees or stores passwords.
+- Switching between accounts on one device keeps each account's Supabase session (never a password) in the same storage Supabase uses for the active login, and only for this browser session when "Remember me" is off. At most 5 accounts are kept. Each refresh token is saved as soon as it rotates, so one is never reused, and removing an account from the device ends its session on the server.
 - New passwords are checked against known data breaches (Have I Been Pwned). Only the first five characters of the password's hash ever leave the device.
 - Every player table has row-level security: a player can only ever read or change their own rows.
 - Signed-out visitors have no access to player tables at all.

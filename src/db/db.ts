@@ -107,6 +107,8 @@ export interface DeviceRow {
   id: 'device';
   speedMinutes: number;
   ageConfirmed: boolean;
+  /** theme when nobody is signed in (each account keeps its own in settings) */
+  theme?: 'dark' | 'light' | 'system';
 }
 
 export interface EngineRow {

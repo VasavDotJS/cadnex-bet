@@ -1,6 +1,6 @@
 /** Sign up, log in and password reset. Accounts live in the cloud, so they work on any device. */
 import { motion, useAnimationControls } from 'framer-motion';
-import { Eye, EyeOff } from 'lucide-react';
+import { ArrowLeft, Eye, EyeOff } from 'lucide-react';
 import { FormEvent, ReactNode, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Orbs } from '../../components/Ambient';
@@ -9,17 +9,25 @@ import { gentle } from '../../components/motion';
 import { Pill } from '../../components/ui';
 import { currency } from '../../lib/currencies';
 import { passwordStrength } from '../../lib/crypto';
+import { MAX_ACCOUNTS, useAccounts } from '../../cloud/accounts';
 import { AuthError, authService } from '../../services/authService';
 import { useSession } from '../../store/session';
 import { useUi } from '../../store/ui';
 import { Logo } from '../shell/Shell';
 
-function Frame({ title, sub, children, footer }: { title: [string, string]; sub: string; children: ReactNode; footer: ReactNode }) {
+function Frame({ title, sub, children, footer, onBack }: { title: [string, string]; sub: string; children: ReactNode; footer: ReactNode; onBack?: () => void }) {
   return (
     <div className="relative flex min-h-dvh items-center justify-center overflow-hidden px-5 py-10">
       <Orbs palette="landing" intensity={0.7} />
       <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={gentle} className="relative w-full max-w-[440px]">
-        <Logo />
+        <div className="flex items-center justify-between">
+          <Logo />
+          {onBack && (
+            <button type="button" onClick={onBack} className="inline-flex h-10 items-center gap-1.5 rounded-full bg-surface2 px-4 text-[14px] text-mute hover:text-ink">
+              <ArrowLeft size={16} strokeWidth={1.5} />Cancel
+            </button>
+          )}
+        </div>
         <h1 className="mt-8 text-[36px] font-semibold leading-[1] tracking-tighter2">{title[0]} <span className="text-mute">{title[1]}</span></h1>
         <p className="mt-3 text-[15px] text-mute">{sub}</p>
         <div className="glass mt-8 rounded-[30px] p-6">{children}</div>
@@ -58,11 +66,25 @@ function useShake() {
   return { controls: c, shake: () => void c.start({ x: [0, -10, 9, -6, 4, 0], transition: { duration: 0.4 } }) };
 }
 
+/** Where the auth screens were opened from, and whether this adds a second account. */
+type AuthState = { from?: string; add?: boolean; email?: string } | null;
+
+/** Checks before adding an account; returns a problem to show, or null. */
+function addProblem(email: string): string | null {
+  const cur = useSession.getState().user;
+  const list = useAccounts.getState().list;
+  if (cur && cur.email.toLowerCase() === email.trim().toLowerCase()) return `You're already logged in as ${cur.username}.`;
+  if (list.length >= MAX_ACCOUNTS && !list.some((a) => a.email.toLowerCase() === email.trim().toLowerCase())) return `You can keep up to ${MAX_ACCOUNTS} accounts on this device. Remove one from Account first.`;
+  return null;
+}
+
 export function Login() {
   const nav = useNavigate();
   const loc = useLocation();
-  const from = (loc.state as { from?: string } | null)?.from ?? '/';
-  const [id, setId] = useState('');
+  const st = loc.state as AuthState;
+  const from = st?.from ?? '/';
+  const adding = !!st?.add && !!useSession.getState().user;
+  const [id, setId] = useState(st?.email ?? '');
   const [pw, setPw] = useState('');
   const [remember, setRemember] = useState(true);
   const [err, setErr] = useState<{ field: string; msg: string } | null>(null);
@@ -71,12 +93,20 @@ export function Login() {
   const submit = async (e: FormEvent) => {
     e.preventDefault();
     if (!id.trim()) { setErr({ field: 'identifier', msg: 'Enter your email address.' }); shake(); return; }
+    if (adding) {
+      const problem = addProblem(id);
+      if (problem) { setErr({ field: 'identifier', msg: problem }); shake(); return; }
+    }
     setBusy(true);
+    let paused = false;
     try {
+      if (adding) { await useSession.getState().beginAdd(); paused = true; }
       const u = await authService.logIn(id, pw, remember);
       await useSession.getState().setUser(u);
-      nav(from, { replace: true });
+      if (adding) useUi.getState().toast({ tone: 'neutral', title: `Switched to ${u.username}`, body: 'Switch accounts any time from Account.' });
+      nav(adding ? '/' : from, { replace: true });
     } catch (x) {
+      if (paused) await useSession.getState().cancelAdd();
       setErr(x instanceof AuthError ? { field: x.field, msg: x.message } : { field: 'form', msg: 'Something went wrong. Try again.' });
       shake();
     } finally {
@@ -84,7 +114,12 @@ export function Login() {
     }
   };
   return (
-    <Frame title={['Welcome', 'back']} sub="Log in to your CADNEX account. It works on any device." footer={<>New here? <Link to="/signup" state={{ from }} className="text-ink underline-offset-2 hover:underline">Create an account</Link></>}>
+    <Frame
+      title={adding ? ['Add an', 'account'] : ['Welcome', 'back']}
+      sub={adding ? 'Log in to another CADNEX account. You can switch between them any time from Account.' : 'Log in to your CADNEX account. It works on any device.'}
+      onBack={adding ? () => nav(-1) : undefined}
+      footer={<>New here? <Link to="/signup" state={{ from, add: adding || undefined }} className="text-ink underline-offset-2 hover:underline">Create an account</Link></>}
+    >
       <motion.form animate={controls} onSubmit={submit} className="flex flex-col gap-4" noValidate>
         <Field label="Email" error={err?.field === 'identifier' ? err.msg : undefined}>
           <input type="email" inputMode="email" value={id} onChange={(e) => { setId(e.target.value); setErr(null); }} autoComplete="email" className={inputCls(err?.field === 'identifier' ? 'x' : undefined)} />
@@ -106,7 +141,9 @@ export function Login() {
 export function Signup() {
   const nav = useNavigate();
   const loc = useLocation();
-  const from = (loc.state as { from?: string } | null)?.from ?? '/';
+  const nav0 = loc.state as AuthState;
+  const from = nav0?.from ?? '/';
+  const adding = !!nav0?.add && !!useSession.getState().user;
   const [f, setF] = useState({ username: '', email: '', password: '', dob: '', currency: 'USD', terms: false });
   const [err, setErr] = useState<Record<string, string>>({});
   const [busy, setBusy] = useState(false);
@@ -118,17 +155,25 @@ export function Signup() {
   const submit = async (e: FormEvent) => {
     e.preventDefault();
     if (!f.terms) { setErr({ terms: 'Accept the terms and responsible gaming policy to continue.' }); shake(); return; }
+    if (adding) {
+      const problem = addProblem(f.email);
+      if (problem) { setErr({ email: problem }); shake(); return; }
+    }
     setBusy(true);
+    let paused = false;
     try {
+      if (adding) { await useSession.getState().beginAdd(); paused = true; }
       const r = await authService.signUp(f);
       if ('confirmEmail' in r) {
+        if (paused) await useSession.getState().cancelAdd();
         setSent(r.confirmEmail);
         return;
       }
       await useSession.getState().setUser(r.user);
       useUi.getState().toast({ tone: 'demo', title: 'Welcome to CADNEX', body: 'Your demo wallet is funded. Your account works on any device you log in to.' });
-      nav(from, { replace: true });
+      nav(adding ? '/' : from, { replace: true });
     } catch (x) {
+      if (paused) await useSession.getState().cancelAdd();
       setErr(x instanceof AuthError ? { [x.field]: x.message } : { form: 'Something went wrong. Try again.' });
       shake();
     } finally {
@@ -145,7 +190,7 @@ export function Signup() {
     );
   }
   return (
-    <Frame title={['Create', 'account']} sub="Free, virtual money only. Takes a minute." footer={<>Already have an account? <Link to="/login" state={{ from }} className="text-ink underline-offset-2 hover:underline">Log in</Link></>}>
+    <Frame title={['Create', 'account']} sub={adding ? 'A new account alongside your current one. Switch between them from Account.' : 'Free, virtual money only. Takes a minute.'} onBack={adding ? () => nav(-1) : undefined} footer={<>Already have an account? <Link to="/login" state={{ from, add: adding || undefined }} className="text-ink underline-offset-2 hover:underline">Log in</Link></>}>
       <motion.form animate={controls} onSubmit={submit} className="flex flex-col gap-4" noValidate>
         <Field label="Username" error={err.username}>
           <input value={f.username} onChange={(e) => set('username', e.target.value)} autoComplete="username" className={inputCls(err.username)} />

@@ -1,6 +1,6 @@
 /** App shell: desktop header + sidebar + slip panel; mobile floating nav + slip sheet. */
 import { LayoutGroup, motion } from 'framer-motion';
-import { Bell, ChevronDown, House, Radio, Search, Ticket, Trophy, Wallet } from 'lucide-react';
+import { Bell, ChevronDown, House, Radio, Search, Ticket, Trophy, UserRound, Wallet } from 'lucide-react';
 import { ReactNode, useMemo, useState } from 'react';
 import { Link, NavLink, useLocation } from 'react-router-dom';
 import { leagueOrder, SPORTS } from '../../data/leagues';
@@ -43,31 +43,44 @@ const NAV = [
   { to: '/wallet', label: 'Wallet', icon: Wallet },
 ];
 
-/** G. Floating frosted pill navigation (mobile). */
+/** G. Floating frosted pill navigation (mobile), with Account at the end. */
 export function BottomNav() {
   const loc = useLocation();
+  const user = useSession((s) => s.user);
+  const accountOpen = useUi((s) => s.account);
   const liveCount = useLive((s) => Object.values(s.events).filter((e) => e.status === 'LIVE').length);
   const openBets = useSession((s) => s.bets.filter((b) => b.status === 'OPEN' || b.status === 'PARTIALLY_CASHED_OUT').length);
   const active = NAV.find((n) => (n.end ? loc.pathname === n.to : loc.pathname.startsWith(n.to)))?.to ?? (loc.pathname.startsWith('/event') ? '/live' : '');
   return (
-    <nav aria-label="Primary" className="fixed inset-x-0 bottom-[max(14px,env(safe-area-inset-bottom))] z-40 flex justify-center px-4 lg:hidden">
+    <nav aria-label="Primary" className="fixed inset-x-0 bottom-[max(14px,env(safe-area-inset-bottom))] z-40 flex justify-center px-3 lg:hidden">
       <LayoutGroup id="bottomnav">
-        <div className="glass flex items-center gap-1 rounded-full p-1.5">
+        <div className="glass flex items-center gap-0.5 rounded-full p-1.5">
           {NAV.map((n) => {
             const on = n.to === active;
             const Icon = n.icon;
             const badge = n.to === '/live' ? liveCount : n.to === '/bets' ? openBets : 0;
             return (
               <NavLink key={n.to} to={n.to} end={n.end} aria-label={n.label} className="relative">
-                <motion.span whileTap={press} className={`relative flex h-12 items-center justify-center gap-2 rounded-full ${on ? 'px-4' : 'w-12'}`}>
+                <motion.span whileTap={press} className={`relative flex h-12 items-center justify-center gap-1.5 rounded-full ${on ? 'px-4 min-[380px]:px-3.5' : 'w-[44px]'}`}>
                   {on && <motion.span layoutId="navpill" className="absolute inset-0 rounded-full bg-pill" transition={spring} />}
                   <Icon size={20} strokeWidth={1.5} className={`relative ${on ? 'text-onpill' : 'text-mute'}`} />
-                  {on && <motion.span initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="relative text-[13.5px] font-medium text-onpill">{n.label}</motion.span>}
+                  {on && <motion.span initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="relative hidden text-[13px] font-medium text-onpill min-[380px]:inline">{n.label}</motion.span>}
                   {!on && badge > 0 && <span className="absolute right-1.5 top-1.5 h-2 w-2 rounded-full bg-lime" />}
                 </motion.span>
               </NavLink>
             );
           })}
+          <button onClick={() => useUi.getState().setAccount(true)} aria-label="Account" aria-haspopup="dialog" aria-expanded={accountOpen} className="relative">
+            <motion.span whileTap={press} className="relative flex h-12 w-[44px] items-center justify-center rounded-full">
+              {user ? (
+                <span className={`rounded-full p-[2px] ${accountOpen ? 'bg-lime' : 'bg-[rgb(var(--line)/0.14)]'}`}>
+                  <Avatar seed={user.avatarSeed} name={user.username} size={26} />
+                </span>
+              ) : (
+                <UserRound size={20} strokeWidth={1.5} className={accountOpen ? 'text-ink' : 'text-mute'} />
+              )}
+            </motion.span>
+          </button>
         </div>
       </LayoutGroup>
     </nav>
@@ -111,7 +124,7 @@ function DesktopHeader() {
               <Bell size={19} strokeWidth={1.5} />
               {unread > 0 && <span className="absolute right-2 top-2 h-2 w-2 rounded-full bg-lime" />}
             </Link>
-            <Link to="/profile" aria-label="Profile"><Avatar seed={user.avatarSeed} name={user.username} size={38} /></Link>
+            <button onClick={() => useUi.getState().setAccount(true)} aria-label="Account" aria-haspopup="dialog" className="rounded-full"><Avatar seed={user.avatarSeed} name={user.username} size={38} /></button>
           </>
         ) : (
           <>
