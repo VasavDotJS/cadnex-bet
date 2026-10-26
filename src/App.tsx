@@ -19,6 +19,7 @@ import { Profile, SettingsPage } from './features/profile/Profile';
 import { getRg } from './features/responsible/limits';
 import { Responsible } from './features/responsible/Responsible';
 import { SearchPalette } from './features/search/SearchPalette';
+import { AccountSheet } from './features/account/AccountSheet';
 import { Shell } from './features/shell/Shell';
 import { FlyingChip, SlipPill, SlipSheet } from './features/slip/BetSlip';
 import { LiveCentre, Sports } from './features/sports/Sports';
@@ -57,7 +58,7 @@ class ErrorBoundary extends Component<{ children: ReactNode }, { error: Error | 
 }
 
 function useTheme() {
-  const theme = useSession((s) => s.settings?.theme ?? 'dark');
+  const theme = useSession((s) => s.settings?.theme ?? s.device.theme ?? 'dark');
   const reduced = useReduced();
   useEffect(() => {
     const apply = () => {
@@ -119,6 +120,8 @@ function AppRoutes() {
   const loc = useLocation();
   const user = useSession((s) => s.user);
   const recovery = useSession((s) => s.recovery);
+  // signed in and adding another account from Account
+  const adding = !!(loc.state as { add?: boolean } | null)?.add;
   useEffect(() => { window.scrollTo(0, 0); }, [loc.pathname]);
   // opened from a password-reset email: choose a new password first
   if (recovery && user && loc.pathname !== '/reset') return <Navigate to="/reset" replace />;
@@ -127,8 +130,8 @@ function AppRoutes() {
     <AnimatePresence mode="wait" initial={false}>
       <Routes location={loc} key={loc.pathname}>
         <Route path="/" element={<Page>{user ? <Home /> : <Landing />}</Page>} />
-        <Route path="/login" element={user ? <Navigate to="/" replace /> : <Page><Login /></Page>} />
-        <Route path="/signup" element={user ? <Navigate to="/" replace /> : <Page><Signup /></Page>} />
+        <Route path="/login" element={user && !adding ? <Navigate to="/" replace /> : <Page><Login /></Page>} />
+        <Route path="/signup" element={user && !adding ? <Navigate to="/" replace /> : <Page><Signup /></Page>} />
         <Route path="/forgot" element={<Page><Forgot /></Page>} />
         <Route path="/reset" element={user ? <Page><ResetPassword /></Page> : <Navigate to="/forgot" replace />} />
         <Route path="/sports" element={<Page><Sports /></Page>} />
@@ -182,6 +185,7 @@ export function App() {
         <SlipPill />
         <SlipSheet />
         <SearchPalette />
+        <AccountSheet />
         <FlyingChip />
         <Celebration />
         <InstallSheet />

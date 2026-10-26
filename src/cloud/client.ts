@@ -25,7 +25,7 @@ export function setRemember(remember: boolean): void {
 
 const ephemeral = () => safe(() => localStorage.getItem(REMEMBER_KEY) === '0', false);
 
-const authStorage = {
+export const authStorage = {
   getItem: (k: string) => safe(() => sessionStorage.getItem(k) ?? localStorage.getItem(k), null),
   setItem: (k: string, v: string) =>
     safe(() => {
