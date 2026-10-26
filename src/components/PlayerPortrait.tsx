@@ -1,23 +1,14 @@
 /**
- * Tennis players: their photo as a scanned halftone print (see lib/scanprint). The first time
- * a print appears, a scanner light passes down it once. Until the photo is ready, or when
- * there isn't one, a blank paper chip with the player's initials shows instead.
+ * Tennis players: their photo in black and white (see lib/bwphoto). Until the photo is ready,
+ * or when there isn't one, a chip with the player's initials shows instead.
  */
 import { useEffect, useRef, useState } from 'react';
 import type { Participant } from '../engine/types';
 import { isPlaceholderName, playerImage, playerPhoto, PlayerPhotoInfo } from '../lib/players';
-import { scanPrint } from '../lib/scanprint';
+import { bwPhoto } from '../lib/bwphoto';
 
 /** finished prints by player and pixel size, so remounts are instant */
 const prints = new Map<string, HTMLCanvasElement | null>();
-/** prints already revealed this session appear without the scanner pass next time */
-const revealed = new Set<string>();
-
-function reducedMotion(): boolean {
-  if (typeof window === 'undefined') return true;
-  return document.documentElement.dataset.motion === 'reduced' || window.matchMedia?.('(prefers-reduced-motion: reduce)').matches === true;
-}
-
 export function initials(name: string): string {
   const parts = name.trim().split(/\s+/);
   return ((parts[0]?.[0] ?? '') + (parts.length > 1 ? parts[parts.length - 1][0] : '')).toUpperCase();
@@ -25,7 +16,7 @@ export function initials(name: string): string {
 
 const radius = (size: number) => Math.round(size * 0.22);
 
-/** The paper chip shown while loading or when there's no photo. */
+/** The chip shown while loading or when there's no photo. */
 function PaperChip({ p, size, className }: { p: Participant; size: number; className: string }) {
   return (
     <span
@@ -44,7 +35,6 @@ export function PlayerPortrait({ p, size, className = '' }: { p: Participant; si
   const canvas = useRef<HTMLCanvasElement>(null);
   const [info, setInfo] = useState<PlayerPhotoInfo | null>(null);
   const [print, setPrint] = useState<HTMLCanvasElement | null>(null);
-  const [reveal, setReveal] = useState(false);
   const placeholder = isPlaceholderName(p.name);
 
   // look the player up once the crest is near the screen, then make the print
@@ -62,13 +52,11 @@ export function PlayerPortrait({ p, size, className = '' }: { p: Participant; si
         if (made === undefined) {
           const img = await playerImage(found);
           if (!live || !img) return;
-          made = scanPrint(img, { size: px, seed: p.name });
+          made = bwPhoto(img, px);
           prints.set(key, made);
         }
         if (!live || !made) return;
         setInfo(found);
-        setReveal(!revealed.has(key) && !reducedMotion());
-        revealed.add(key);
         setPrint(made);
       });
     };
@@ -116,8 +104,7 @@ export function PlayerPortrait({ p, size, className = '' }: { p: Participant; si
     >
       {print ? (
         <>
-          <canvas ref={canvas} className={`h-full w-full ${reveal ? 'print-reveal' : ''}`} style={{ borderRadius: radius(size) }} role="img" aria-label={`${p.name}, photo`} />
-          {reveal && size >= 32 && <span className="print-bar" aria-hidden />}
+          <canvas ref={canvas} className="h-full w-full" style={{ borderRadius: radius(size) }} role="img" aria-label={`${p.name}, photo`} />
         </>
       ) : (
         <PaperChip p={p} size={size} className="" />

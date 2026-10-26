@@ -1,6 +1,6 @@
 /**
  * Team crests: the club's official logo when the feed has one, otherwise a monogram in the
- * team's colours (or if the logo can't load). Tennis players get their photo as a scanned halftone print.
+ * team's colours (or if the logo can't load). Tennis players get their photo in black and white.
  */
 import { useState } from 'react';
 import type { SportId } from '../data/types';

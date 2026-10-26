@@ -184,57 +184,30 @@ input[type='date']::-webkit-calendar-picker-indicator {
   filter: invert(0.6);
 }
 
-/* tennis player portraits: scanned halftone prints, revealed once by a passing scanner light */
+/* tennis player portraits: black-and-white photos */
 .print {
   isolation: isolate;
   overflow: hidden;
   box-shadow: 0 0 0 1px rgb(var(--line) / 0.1), 0 6px 16px -8px rgb(0 0 0 / 0.6);
 }
 .print-chip {
-  color: #2a2722;
+  color: rgb(var(--mute));
   letter-spacing: -0.02em;
-  background:
-    radial-gradient(120% 120% at 30% 20%, transparent 55%, rgb(60 50 35 / 0.18)),
-    #e7e1d4;
-}
-.print-reveal { animation: print-reveal 900ms cubic-bezier(0.3, 0, 0.2, 1) both; }
-@keyframes print-reveal {
-  from { clip-path: inset(0 0 100% 0); }
-  to { clip-path: inset(0 0 0 0); }
-}
-.print-bar {
-  position: absolute;
-  left: 0;
-  right: 0;
-  top: 0;
-  height: 16%;
-  pointer-events: none;
-  background: linear-gradient(to bottom, rgb(255 255 255 / 0) 0%, rgb(255 255 255 / 0.35) 70%, rgb(var(--lime)) 92%, rgb(var(--lime) / 0) 100%);
-  mix-blend-mode: screen;
-  animation: print-bar 900ms cubic-bezier(0.3, 0, 0.2, 1) both;
-}
-@keyframes print-bar {
-  0% { transform: translateY(-100%); opacity: 1; }
-  90% { opacity: 1; }
-  100% { transform: translateY(560%); opacity: 0; }
+  background: rgb(var(--surface-3));
 }
 .print-tbd {
-  background: radial-gradient(circle at 50% 50%, rgb(var(--surface-3)) 0 1px, transparent 1.6px) 0 0 / 5px 5px, rgb(var(--surface-2));
+  background: rgb(var(--surface-2));
   box-shadow: 0 0 0 1px rgb(var(--line) / 0.08);
 }
 
 @media (prefers-reduced-motion: reduce) {
   .orb, .breathe, .skeleton { animation: none !important; }
-  .print-reveal, .print-bar { animation: none !important; }
-  .print-bar { display: none; }
 }
 :root[data-motion='reduced'] .orb,
 :root[data-motion='reduced'] .breathe,
 :root[data-motion='reduced'] .skeleton {
   animation: none !important;
 }
-:root[data-motion='reduced'] .print-reveal { animation: none !important; }
-:root[data-motion='reduced'] .print-bar { display: none; }
 
 /* frosted wallet card inner mesh */
 .wallet-mesh {

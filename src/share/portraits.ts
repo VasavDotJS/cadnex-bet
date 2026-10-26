@@ -1,15 +1,15 @@
 /**
- * Tennis player prints for the story canvases. Like the logos, drawing never waits: until a
- * print is ready a paper chip with the initials shows, and `preloadPortraits` waits briefly
- * before a video is made so the file has them.
+ * Tennis player photos (black and white) for the story canvases. Like the logos, drawing never
+ * waits: until a photo is ready a chip with the initials shows, and `preloadPortraits` waits
+ * briefly before a video is made so the file has them.
  */
 import { isPlaceholderName, playerImage, playerPhoto } from '../lib/players';
-import { scanPrint } from '../lib/scanprint';
+import { bwPhoto } from '../lib/bwphoto';
 
 const prints = new Map<string, HTMLCanvasElement | null>();
 const pending = new Map<string, Promise<void>>();
 
-/** Story prints are made at one size and scaled down where needed. */
+/** Story photos are made at one size and scaled down where needed. */
 const PRINT_PX = 520;
 
 function start(name: string): Promise<void> {
@@ -17,13 +17,13 @@ function start(name: string): Promise<void> {
   if (have) return have;
   const p = playerPhoto(name)
     .then((info) => (info ? playerImage(info) : null))
-    .then((img) => { prints.set(name, img ? scanPrint(img, { size: PRINT_PX, seed: name }) : null); })
+    .then((img) => { prints.set(name, img ? bwPhoto(img, PRINT_PX) : null); })
     .catch(() => { prints.set(name, null); });
   pending.set(name, p);
   return p;
 }
 
-/** The finished print for a player, or null while loading or if there's no photo. */
+/** The black-and-white photo for a player, or null while loading or if there's no photo. */
 export function printFor(name: string | undefined): HTMLCanvasElement | null {
   if (!name || isPlaceholderName(name) || typeof Image === 'undefined') return null;
   if (prints.has(name)) return prints.get(name) ?? null;
@@ -42,51 +42,38 @@ const initials = (name: string) => {
   return ((parts[0]?.[0] ?? '') + (parts.length > 1 ? parts[parts.length - 1][0] : '')).toUpperCase();
 };
 
-/**
- * A print pasted onto the poster: a slightly tilted square photo with a soft drop shadow and,
- * optionally, a flat lime sticker on one corner. Without a photo, a blank paper chip with the
- * player's initials. `side` (-1 left, 1 right) mirrors the tilt and the sticker.
- */
-export function drawPrintCard(ctx: CanvasRenderingContext2D, name: string, cx: number, cy: number, size: number, side: -1 | 1, sans: string, sticker = true): void {
+/** The player's photo as a rounded square with a soft drop shadow; without one, a chip with their initials. */
+export function drawPrintCard(ctx: CanvasRenderingContext2D, name: string, cx: number, cy: number, size: number, sans: string): void {
   const print = printFor(name);
-  ctx.save();
-  ctx.translate(cx, cy);
-  ctx.rotate(side * -0.045);
   const h = size / 2;
-  const r = size * 0.06;
+  const r = size * 0.16;
+  ctx.save();
   ctx.shadowColor = 'rgba(0,0,0,0.6)';
   ctx.shadowBlur = size * 0.16;
   ctx.shadowOffsetY = size * 0.07;
   ctx.beginPath();
-  ctx.roundRect(-h, -h, size, size, r);
-  ctx.fillStyle = '#E7E1D4';
+  ctx.roundRect(cx - h, cy - h, size, size, r);
+  ctx.fillStyle = '#26262D';
   ctx.fill();
   ctx.shadowColor = 'transparent';
-  ctx.save();
   ctx.clip();
-  if (print) ctx.drawImage(print, -h, -h, size, size);
+  if (print) ctx.drawImage(print, cx - h, cy - h, size, size);
   else {
-    ctx.fillStyle = '#2A2722';
+    ctx.fillStyle = 'rgba(244,244,246,0.75)';
     ctx.font = `700 ${Math.round(size * 0.34)}px ${sans}`;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.fillText(initials(name), 0, size * 0.02);
+    ctx.fillText(initials(name), cx, cy + size * 0.02);
   }
   ctx.restore();
-  if (sticker && print) {
-    // the flat neon sticker, half on the print
-    ctx.save();
-    ctx.translate(side * h * 0.62, h * 0.78);
-    ctx.rotate(side * 0.2);
-    const s = size * 0.2;
-    ctx.fillStyle = '#B5F23D';
-    ctx.fillRect(-s / 2, -s * 0.32, s, s * 0.64);
-    ctx.restore();
-  }
-  ctx.restore();
+  ctx.beginPath();
+  ctx.roundRect(cx - h, cy - h, size, size, r);
+  ctx.lineWidth = 2;
+  ctx.strokeStyle = 'rgba(255,255,255,0.14)';
+  ctx.stroke();
 }
 
-/** A print in a small disc (bet story legs). Returns false when there's no print to draw. */
+/** The photo in a small disc (bet story legs). Returns false when there's no photo to draw. */
 export function drawPrintDisc(ctx: CanvasRenderingContext2D, name: string | undefined, cx: number, cy: number, r: number): boolean {
   const print = printFor(name);
   if (!print) return false;
