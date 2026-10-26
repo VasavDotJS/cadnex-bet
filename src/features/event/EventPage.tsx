@@ -17,7 +17,7 @@ import { press, spring } from '../../components/motion';
 import { Chip, countdown, Empty, kickoffLabel, LiveTag, Tabs, useNow } from '../../components/ui';
 import { useLive } from '../../store/live';
 import { useSession } from '../../store/session';
-import { useShare } from '../../share/ShareStory';
+import { useShare } from '../../share/store';
 import { useUi } from '../../store/ui';
 
 const KIND_MARK: Partial<Record<Incident['kind'], string>> = {

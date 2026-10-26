@@ -28,8 +28,8 @@ export async function startEngine(onMessage: (m: FromEngine) => void): Promise<E
         clearTimeout(t);
         resolve(false);
       };
-      // probe: a snapshot request answers immediately once the worker script runs
-      w.postMessage({ type: 'snapshot-request' } satisfies ToEngine);
+      // probe: answers immediately once the worker script runs
+      w.postMessage({ type: 'ping' } satisfies ToEngine);
     });
     if (ok) {
       w.onmessage = (e: MessageEvent<FromEngine>) => onMessage(e.data);

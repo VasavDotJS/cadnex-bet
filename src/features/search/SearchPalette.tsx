@@ -7,7 +7,7 @@ import { Crest } from '../../components/Crest';
 import { Sheet } from '../../components/Sheet';
 import { SportGlyph } from '../../components/SportGlyph';
 import type { Participant } from '../../engine/types';
-import { useLive } from '../../store/live';
+import { useEventsWhen } from '../../store/live';
 import { useUi } from '../../store/ui';
 
 interface Entry { kind: 'team' | 'league'; sport: SportId; key: string; name: string; sub: string; p?: Participant; eventId?: string; leagueId?: string }
@@ -18,7 +18,7 @@ export function SearchPalette() {
   const open = useUi((s) => s.search);
   const set = useUi((s) => s.setSearch);
   const [q, setQ] = useState('');
-  const events = useLive((s) => s.events);
+  const events = useEventsWhen(open);
   const nav = useNavigate();
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {

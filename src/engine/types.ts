@@ -111,7 +111,9 @@ export interface EventPublic {
 // ── worker protocol ──
 
 export type ToEngine =
-  | { type: 'init'; snapshot: EngineSnapshot | null; now: number }
+  /** `selfStore`: the engine loads and saves its own snapshot (in the worker, off the main thread) */
+  | { type: 'init'; snapshot: EngineSnapshot | null; now: number; selfStore?: boolean }
+  | { type: 'ping' }
   | { type: 'focus'; eventId: string | null }
   | { type: 'track'; ids: string[] }
   | { type: 'refresh' }
@@ -130,6 +132,7 @@ export type FromEngine =
   | { type: 'update'; events: EventPublic[]; removed: string[] }
   | { type: 'status'; health: FeedHealth }
   | { type: 'snapshot'; snapshot: EngineSnapshot }
+  | { type: 'pong' }
   | { type: 'log'; msg: string };
 
 export interface EngineSnapshot {

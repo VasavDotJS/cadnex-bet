@@ -7,34 +7,69 @@ import { useReduced } from './components/motion';
 import { Toasts } from './components/Toasts';
 import { TwoTone } from './components/ui';
 import { db } from './db/db';
-import { Forgot, Login, ResetPassword, Signup } from './features/auth/Auth';
 import { Landing } from './features/auth/Landing';
-import { MyBets } from './features/bets/MyBets';
 import { EventPage } from './features/event/EventPage';
-import { Help, NotFound } from './features/help/Help';
 import { InstallSheet } from './features/install/Install';
 import { Home } from './features/home/Home';
 import { NotificationsPage } from './features/notifications/Notifications';
-import { Profile, SettingsPage } from './features/profile/Profile';
 import { getRg } from './features/responsible/limits';
-import { Responsible } from './features/responsible/Responsible';
 import { SearchPalette } from './features/search/SearchPalette';
 import { AccountSheet } from './features/account/AccountSheet';
 import { Shell } from './features/shell/Shell';
 import { FlyingChip, SlipPill, SlipSheet } from './features/slip/BetSlip';
 import { LiveCentre, Sports } from './features/sports/Sports';
-import { WalletPage } from './features/wallet/Wallet';
 import { convertMinor, formatMoney } from './lib/money';
 import { startPwa } from './pwa/install';
-import { ShareStorySheet } from './share/ShareStory';
-import { WrappedPlayer } from './wrapped/Wrapped';
-import { SharedSlip } from './share/SharedSlip';
 import { markReady } from './splash/ready';
 import { useSession } from './store/session';
 import { useUi } from './store/ui';
+import { useShare } from './share/store';
+import { useWrapped } from './wrapped/store';
 
 // loaded only when someone opens /admin, so the panel isn't part of the normal app download
 const AdminPage = lazy(() => import('./admin/AdminPage'));
+
+// Screens most visits never open load on demand (and are fetched in the background once the
+// app is idle), so phones parse far less JavaScript at start-up.
+const loaders = {
+  auth: () => import('./features/auth/Auth'),
+  bets: () => import('./features/bets/MyBets'),
+  help: () => import('./features/help/Help'),
+  profile: () => import('./features/profile/Profile'),
+  responsible: () => import('./features/responsible/Responsible'),
+  wallet: () => import('./features/wallet/Wallet'),
+  shared: () => import('./share/SharedSlip'),
+  share: () => import('./share/ShareStory'),
+  wrapped: () => import('./wrapped/Wrapped'),
+};
+const Login = lazy(() => loaders.auth().then((m) => ({ default: m.Login })));
+const Signup = lazy(() => loaders.auth().then((m) => ({ default: m.Signup })));
+const Forgot = lazy(() => loaders.auth().then((m) => ({ default: m.Forgot })));
+const ResetPassword = lazy(() => loaders.auth().then((m) => ({ default: m.ResetPassword })));
+const MyBets = lazy(() => loaders.bets().then((m) => ({ default: m.MyBets })));
+const Help = lazy(() => loaders.help().then((m) => ({ default: m.Help })));
+const NotFound = lazy(() => loaders.help().then((m) => ({ default: m.NotFound })));
+const Profile = lazy(() => loaders.profile().then((m) => ({ default: m.Profile })));
+const SettingsPage = lazy(() => loaders.profile().then((m) => ({ default: m.SettingsPage })));
+const Responsible = lazy(() => loaders.responsible().then((m) => ({ default: m.Responsible })));
+const WalletPage = lazy(() => loaders.wallet().then((m) => ({ default: m.WalletPage })));
+const SharedSlip = lazy(() => loaders.shared().then((m) => ({ default: m.SharedSlip })));
+const ShareStorySheet = lazy(() => loaders.share().then((m) => ({ default: m.ShareStorySheet })));
+const WrappedPlayer = lazy(() => loaders.wrapped().then((m) => ({ default: m.WrappedPlayer })));
+
+/** Mount an overlay's code only once it has been opened (it then stays, for its closing animation). */
+function Deferred({ open, children }: { open: boolean; children: ReactNode }) {
+  const seen = useRef(false);
+  if (open) seen.current = true;
+  return seen.current ? <Suspense fallback={null}>{children}</Suspense> : null;
+}
+
+function prefetchScreens(): void {
+  const run = () => Object.values(loaders).forEach((load, i) => setTimeout(() => void load().catch(() => {}), i * 300));
+  const w = window as Window & { requestIdleCallback?: (f: () => void, o?: { timeout: number }) => void };
+  if (w.requestIdleCallback) w.requestIdleCallback(run, { timeout: 6000 });
+  else setTimeout(run, 3000);
+}
 
 class ErrorBoundary extends Component<{ children: ReactNode }, { error: Error | null }> {
   state = { error: null as Error | null };
@@ -111,7 +146,7 @@ function Page({ children }: { children: ReactNode }) {
   const reduced = useReduced();
   return (
     <motion.div initial={reduced ? { opacity: 0 } : { opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} transition={{ duration: 0.22, ease: [0.2, 0.8, 0.2, 1] }}>
-      {children}
+      <Suspense fallback={<div className="min-h-[60dvh]" />}>{children}</Suspense>
     </motion.div>
   );
 }
@@ -165,6 +200,17 @@ function pageNonce(): string | undefined {
   return s?.nonce || s?.getAttribute('nonce') || undefined;
 }
 
+function DeferredOverlays() {
+  const sharing = useShare((s) => !!s.source);
+  const wrapped = useWrapped((s) => !!s.period);
+  return (
+    <>
+      <Deferred open={sharing}><ShareStorySheet /></Deferred>
+      <Deferred open={wrapped}><WrappedPlayer /></Deferred>
+    </>
+  );
+}
+
 export function App() {
   const booted = useSession((s) => s.booted);
   useTheme();
@@ -174,7 +220,9 @@ export function App() {
     void useSession.getState().boot().then(() => startBridge());
   }, []);
   useEffect(() => {
-    if (booted) markReady();
+    if (!booted) return;
+    markReady();
+    prefetchScreens();
   }, [booted]);
   if (!booted) return null; // the launch screen is showing
   return (
@@ -189,8 +237,7 @@ export function App() {
         <FlyingChip />
         <Celebration />
         <InstallSheet />
-        <ShareStorySheet />
-        <WrappedPlayer />
+        <DeferredOverlays />
         <Toasts />
       </HashRouter>
       </MotionConfig>

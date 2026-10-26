@@ -1,5 +1,6 @@
 /** Live sports state mirrored from the engine. Components subscribe by event id. */
 import { create } from 'zustand';
+import { useShallow } from 'zustand/react/shallow';
 import { registerLeague } from '../data/leagues';
 import { rememberLogos } from '../lib/logo';
 import type { EventPublic, FeedHealth, Market, Selection } from '../engine/types';
@@ -49,6 +50,48 @@ export const useLive = create<LiveState>((set) => ({
     });
   },
 }));
+
+const listCache = new WeakMap<Record<string, EventPublic>, EventPublic[]>();
+
+/** All events as an array, built once per store update and shared by every selector. */
+export function eventList(events: Record<string, EventPublic>): EventPublic[] {
+  let l = listCache.get(events);
+  if (!l) {
+    l = Object.values(events);
+    listCache.set(events, l);
+  }
+  return l;
+}
+
+/** Number of matches in play (re-renders only when the count changes). */
+export function useLiveCount(): number {
+  return useLive((s) => {
+    let n = 0;
+    for (const e of eventList(s.events)) if (e.status === 'LIVE') n++;
+    return n;
+  });
+}
+
+/**
+ * Just the events with these ids: the component re-renders only when one of them changes,
+ * not when any of the other ~1,000 matches ticks.
+ */
+export function useEventsFor(ids: readonly string[]): Record<string, EventPublic> {
+  return useLive(useShallow((s) => {
+    const out: Record<string, EventPublic> = {};
+    for (const id of ids) {
+      const e = s.events[id];
+      if (e) out[id] = e;
+    }
+    return out;
+  }));
+}
+
+const NO_EVENTS: Record<string, EventPublic> = {};
+/** The whole event map only while `active` (closed sheets and palettes don't re-render on every tick). */
+export function useEventsWhen(active: boolean): Record<string, EventPublic> {
+  return useLive((s) => (active ? s.events : NO_EVENTS));
+}
 
 export function findSelection(ev: EventPublic | undefined, marketKey: string, code: string): { market: Market; selection: Selection } | null {
   if (!ev) return null;

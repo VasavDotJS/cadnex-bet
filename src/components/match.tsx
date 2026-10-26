@@ -38,13 +38,14 @@ export function EventStatus({ ev, now }: { ev: EventPublic; now: number }) {
 
 export const MatchRow = memo(function MatchRow({ id, showLeague = false }: { id: string; showLeague?: boolean }) {
   const ev = useLive((s) => s.events[id]);
-  const now = useNow(1000);
+  // seconds only for an imminent kick-off countdown; otherwise the label changes by the minute
+  const now = useNow(ev?.status === 'SCHEDULED' && ev.startTime - Date.now() < 3_660_000 ? 1000 : 60_000);
   if (!ev) return null;
   const mm = mainMarket(ev);
   const [sh, sa] = scoreOf(ev);
   const showScore = ev.status !== 'SCHEDULED';
   return (
-    <div className="flex flex-col gap-3 rounded-[24px] bg-surface px-4 py-3.5 sm:flex-row sm:items-center" style={{ boxShadow: 'inset 0 1px 0 rgb(var(--edge) / var(--edge-a))' }}>
+    <div className="match-row flex flex-col gap-3 rounded-[24px] bg-surface px-4 py-3.5 sm:flex-row sm:items-center" style={{ boxShadow: 'inset 0 1px 0 rgb(var(--edge) / var(--edge-a))' }}>
       <Link to={`/event/${ev.id}`} className="flex min-w-0 flex-1 flex-col gap-2" aria-label={`${ev.home.name} v ${ev.away.name}`}>
         <div className="flex items-center gap-2">
           <EventStatus ev={ev} now={now} />

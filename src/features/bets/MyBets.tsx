@@ -16,11 +16,11 @@ import { Empty, LiveDot, Pill, Tabs, TwoTone } from '../../components/ui';
 import { cashOutValue, LegQuote } from '../../lib/betting';
 import { formatMoney, LegResult, Minor } from '../../lib/money';
 import { betService, shortRef } from '../../services/betService';
-import { findSelection, useLive } from '../../store/live';
+import { findSelection, useEventsFor } from '../../store/live';
 import { useSession } from '../../store/session';
 import { useUi } from '../../store/ui';
 import { leagueById } from '../../data/leagues';
-import { useShare } from '../../share/ShareStory';
+import { useShare } from '../../share/store';
 
 const RESULT_LABEL: Record<LegResult, string> = { PENDING: 'Open', WON: 'Won', LOST: 'Lost', VOID: 'Void', PUSH: 'Push', HALF_WON: 'Half won', HALF_LOST: 'Half lost' };
 
@@ -33,8 +33,10 @@ function quotesFor(bet: BetRow, events: Record<string, EventPublic>): (LegQuote 
   });
 }
 
+const legIds = (bet: BetRow) => bet.legs.map((l) => l.eventId);
+
 export function useCashOut(bet: BetRow): Minor | null {
-  const events = useLive((s) => s.events);
+  const events = useEventsFor(legIds(bet));
   return useMemo(() => cashOutValue(bet, quotesFor(bet, events)), [bet, events]);
 }
 
@@ -57,7 +59,7 @@ function typeLabel(b: BetRow): string {
 
 function CashOutSheet({ bet, open, onClose }: { bet: BetRow; open: boolean; onClose: () => void }) {
   const user = useSession((s) => s.user);
-  const events = useLive((s) => s.events);
+  const events = useEventsFor(legIds(bet));
   const value = useCashOut(bet);
   const [pct, setPct] = useState(100);
   const [busy, setBusy] = useState(false);
@@ -144,7 +146,7 @@ function ShareButton({ betId, won }: { betId: string; won: boolean }) {
       aria-label="Share as a story"
       className={`relative inline-flex h-9 shrink-0 items-center gap-1.5 overflow-hidden rounded-full px-3.5 text-[13px] font-medium ${won ? 'bg-lime/15 text-up' : 'bg-surface2 text-ink'}`}
     >
-      {won && <motion.span className="pointer-events-none absolute inset-y-0 w-8 -skew-x-12 bg-white/25" initial={{ left: '-30%' }} animate={{ left: '130%' }} transition={{ duration: 1.6, repeat: Infinity, repeatDelay: 2.4, ease: 'easeInOut' }} />}
+      {won && <span className="won-sweep pointer-events-none absolute inset-0" aria-hidden><span className="absolute inset-y-0 left-0 w-8 -skew-x-12 bg-white/25" /></span>}
       <Share2 size={14} />Share
     </motion.button>
   );
@@ -154,7 +156,7 @@ function BetCard({ bet }: { bet: BetRow }) {
   const [open, setOpen] = useState(false);
   const [cashing, setCashing] = useState(false);
   const [receipt, setReceipt] = useState(false);
-  const events = useLive((s) => s.events);
+  const events = useEventsFor(legIds(bet));
   const fmt = useOddsFmt();
   const value = useCashOut(bet);
   const tone = statusTone(bet);
@@ -240,9 +242,9 @@ export function MyBets() {
     useShare.getState().open({ kind: 'bet', betId: shareId });
     setParams({}, { replace: true });
   }, [shareId, bets, setParams]);
-  const events = useLive((s) => s.events);
-  const [tab, setTab] = useState<'open' | 'cashout' | 'settled'>('open');
   const open = bets.filter((b) => b.status === 'OPEN' || b.status === 'PARTIALLY_CASHED_OUT');
+  const events = useEventsFor(open.flatMap(legIds));
+  const [tab, setTab] = useState<'open' | 'cashout' | 'settled'>('open');
   const cashable = open.filter((b) => cashOutValue(b, quotesFor(b, events)) !== null);
   const settled = bets.filter((b) => !(b.status === 'OPEN' || b.status === 'PARTIALLY_CASHED_OUT'));
   const list = tab === 'open' ? open : tab === 'cashout' ? cashable : settled;

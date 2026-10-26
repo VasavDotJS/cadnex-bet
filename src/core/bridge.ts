@@ -153,14 +153,19 @@ export function startBridge(): Promise<void> {
 
 async function boot(): Promise<void> {
   handle = await startEngine(onMessage);
-  let snapshot = null;
-  try {
-    snapshot = (await db.engine.get(SNAP_KEY))?.snapshot ?? null;
-    void db.engine.delete('snapshot').catch(() => {}); // old simulation state
-  } catch {
-    snapshot = null;
+  void db.engine.delete('snapshot').catch(() => {}); // old simulation state
+  if (handle.mode === 'worker') {
+    // the worker reads and writes its snapshot itself: nothing large crosses to this thread
+    handle.send({ type: 'init', snapshot: null, now: Date.now(), selfStore: true });
+  } else {
+    let snapshot = null;
+    try {
+      snapshot = (await db.engine.get(SNAP_KEY))?.snapshot ?? null;
+    } catch {
+      snapshot = null;
+    }
+    handle.send({ type: 'init', snapshot, now: Date.now() });
   }
-  handle.send({ type: 'init', snapshot, now: Date.now() });
   syncTracked();
   useSession.subscribe(syncTracked);
   const save = () => handle?.send({ type: 'snapshot-request' });

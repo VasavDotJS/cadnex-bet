@@ -72,9 +72,10 @@ export function LiveWave({ pressure, live, className = '' }: { pressure: number;
   const d = `M${pts.join(' L')}`;
   return (
     <div className={`relative h-8 overflow-hidden ${className}`} aria-hidden>
-      <motion.svg viewBox="0 0 400 32" preserveAspectRatio="none" className="absolute inset-y-0 left-0 h-full w-[200%]" animate={reduced || !live ? undefined : { x: ['0%', '-50%'] }} transition={{ duration: 6, repeat: Infinity, ease: 'linear' }}>
+      {/* a CSS animation (runs on the compositor), not a per-frame JS one */}
+      <svg viewBox="0 0 400 32" preserveAspectRatio="none" className={`absolute inset-y-0 left-0 h-full w-[200%] ${reduced || !live ? '' : 'marquee'}`} style={{ animationDuration: '6s' }}>
         <path d={d} fill="none" stroke="rgb(var(--lime))" strokeOpacity={live ? 0.9 : 0.3} strokeWidth="1.2" vectorEffect="non-scaling-stroke" />
-      </motion.svg>
+      </svg>
     </div>
   );
 }

@@ -3,7 +3,7 @@ import { useMemo } from 'react';
 import type { EventPublic, Market, Selection } from '../../engine/types';
 import { comboOddsE4, comboReturn, e4ToNumber, formatMoney, Minor, parseAmount, SYSTEM_TYPES, systemLines, systemReturn, toE4 } from '../../lib/money';
 import { maxPayout, minStake } from '../../services/betService';
-import { findSelection, useLive } from '../../store/live';
+import { findSelection, useEventsFor } from '../../store/live';
 import { useSession } from '../../store/session';
 import { SlipSel, useSlip } from '../../store/slip';
 
@@ -40,8 +40,8 @@ export interface SlipModel {
 }
 
 export function useSlipModel(): SlipModel {
-  const events = useLive((s) => s.events);
   const slip = useSlip();
+  const events = useEventsFor(slip.sels.map((x) => x.eventId));
   const wallet = useSession((s) => s.wallet);
   const policy = useSession((s) => s.settings?.oddsChange ?? 'higher');
 

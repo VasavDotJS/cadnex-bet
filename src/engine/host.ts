@@ -5,16 +5,25 @@
  */
 import type { FeedEvent, FeedResponse } from '../feed/types';
 import { LiveEngine } from '../live/engine';
-import type { FeedHealth, FromEngine, ToEngine } from './types';
+import type { EngineSnapshot, FeedHealth, FromEngine, ToEngine } from './types';
 
+/** live and near-term matches: small and frequent */
 const POLL_MS = 15_000;
+/** the full two-week list: large, changes slowly */
+const FULL_MS = 60_000;
 const TICK_MS = 1_000;
 const POST_MS = 600;
-const SNAPSHOT_MS = 15_000;
+const SNAPSHOT_MS = 30_000;
 const TRACK_MS = 60_000;
 const DETAIL_MS = 20_000;
 
-export function createHost(post: (m: FromEngine) => void, base = '') {
+/** Where the engine keeps its snapshot when it saves it itself (IndexedDB, from the worker). */
+export interface SnapshotStore {
+  load(): Promise<EngineSnapshot | null>;
+  save(s: EngineSnapshot): Promise<void>;
+}
+
+export function createHost(post: (m: FromEngine) => void, base = '', store?: SnapshotStore) {
   const engine = new LiveEngine();
   const pending = new Set<string>();
   let removed: string[] = [];
@@ -24,6 +33,11 @@ export function createHost(post: (m: FromEngine) => void, base = '') {
   let lastDetail = 0;
   let started = false;
   let polling = false;
+  let lastFull = 0;
+  let selfStore = false;
+  /** bumped whenever the engine's state changes, so unchanged snapshots aren't rewritten */
+  let dirty = 0;
+  let savedDirty = -1;
   const health: FeedHealth = { ok: false, lastOk: 0, lastTry: 0, provider: 'ESPN' };
 
   async function getJson<T>(path: string): Promise<T> {
@@ -54,21 +68,25 @@ export function createHost(post: (m: FromEngine) => void, base = '') {
     const r = engine.ingest(events, Date.now(), { full });
     r.changed.forEach((id) => pending.add(id));
     removed.push(...r.removed);
+    if (r.changed.size || r.removed.length) dirty++;
   }
 
-  async function poll(): Promise<void> {
+  async function poll(force = false): Promise<void> {
     if (polling) return;
     polling = true;
     health.lastTry = Date.now();
+    // the full list once a minute (or when asked); in between, only live and near-term matches
+    const full = force || Date.now() - lastFull >= FULL_MS;
     try {
-      const feed = await getJson<FeedResponse>('/api/feed');
+      const feed = await getJson<FeedResponse>(full ? '/api/feed' : '/api/feed?scope=live');
       const anyOk = feed.sources.some((s) => s.ok);
       if (anyOk) {
         engine.lastOk = Date.now();
         health.ok = true;
         health.lastOk = engine.lastOk;
         health.error = undefined;
-        ingest(feed.events, true);
+        if (full) lastFull = Date.now();
+        ingest(feed.events, full);
       } else {
         health.ok = false;
         health.error = 'The score provider is not answering right now.';
@@ -81,6 +99,15 @@ export function createHost(post: (m: FromEngine) => void, base = '') {
       post({ type: 'status', health: { ...health } });
     }
     await followTracked();
+  }
+
+  /** Save the engine's state: by itself in the worker, otherwise handed to the page to store. */
+  function saveSnapshot(always = false): void {
+    if (!always && dirty === savedDirty) return;
+    savedDirty = dirty;
+    const snapshot: EngineSnapshot = { savedAt: Date.now(), version: 2, events: engine.snapshot(Date.now()) };
+    if (selfStore && store) void store.save(snapshot).catch(() => {});
+    else post({ type: 'snapshot', snapshot });
   }
 
   /** Matches with open bets that the main feed no longer lists. */
@@ -119,29 +146,45 @@ export function createHost(post: (m: FromEngine) => void, base = '') {
 
   function loop(): void {
     const now = Date.now();
-    engine.tick(now).forEach((id) => pending.add(id));
+    const ticked = engine.tick(now);
+    ticked.forEach((id) => pending.add(id));
+    if (ticked.size) dirty++;
     flush();
     if (now - lastSnap > SNAPSHOT_MS) {
       lastSnap = now;
-      post({ type: 'snapshot', snapshot: { savedAt: now, version: 2, events: engine.snapshot(now) } });
+      saveSnapshot();
     }
     void refreshFocus();
+  }
+
+  function start(): void {
+    post({ type: 'ready', events: [...engine.items.values()].map((it) => { it.postedMv = it.mv; return engine.view(it, true); }) });
+    if (!started) {
+      started = true;
+      void poll(true);
+      setInterval(() => void poll(), POLL_MS);
+      setInterval(loop, TICK_MS);
+    }
   }
 
   return {
     handle(msg: ToEngine): void {
       switch (msg.type) {
         case 'init': {
-          if (msg.snapshot?.version === 2) engine.restore(msg.snapshot.events);
-          post({ type: 'ready', events: [...engine.items.values()].map((it) => { it.postedMv = it.mv; return engine.view(it, true); }) });
-          if (!started) {
-            started = true;
-            void poll();
-            setInterval(() => void poll(), POLL_MS);
-            setInterval(loop, TICK_MS);
+          if (msg.selfStore && store) {
+            selfStore = true;
+            void store.load().then((snap) => {
+              if (snap?.version === 2) engine.restore(snap.events);
+            }, () => {}).finally(start);
+          } else {
+            if (msg.snapshot?.version === 2) engine.restore(msg.snapshot.events);
+            start();
           }
           break;
         }
+        case 'ping':
+          post({ type: 'pong' });
+          break;
         case 'focus':
           engine.focus = msg.eventId;
           lastDetail = 0;
@@ -153,10 +196,10 @@ export function createHost(post: (m: FromEngine) => void, base = '') {
           void followTracked().then(() => flush(true));
           break;
         case 'refresh':
-          void poll().then(() => flush(true));
+          void poll(true).then(() => flush(true));
           break;
         case 'snapshot-request':
-          post({ type: 'snapshot', snapshot: { savedAt: Date.now(), version: 2, events: engine.snapshot(Date.now()) } });
+          saveSnapshot(true);
           break;
       }
     },

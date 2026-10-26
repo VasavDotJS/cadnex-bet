@@ -7,23 +7,24 @@
 import { AnimatePresence, motion } from 'framer-motion';
 import { Check, Download, Link2, Sparkles } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { create } from 'zustand';
 import { Sheet } from '../components/Sheet';
 import { press, spring } from '../components/motion';
 import { formatMoney } from '../lib/money';
 import { formatOdds } from '../lib/odds';
-import { useLive } from '../store/live';
+import { useEventsWhen } from '../store/live';
 import { useSession } from '../store/session';
 import { useSlip } from '../store/slip';
 import { useUi } from '../store/ui';
 import { shareUrl } from './link';
 import { Assets, drawStory, DURATION, H, loadAssets, Story, StoryOptions, storyFromBet, storyFromSlip, W } from './story';
 import { preloadLogos } from './logos';
+import { Source, useShare } from './store';
+
+export { useShare } from './store';
 import { preloadPortraits } from './portraits';
 import { drawMatchStory, matchStoryFrom } from './matchStory';
 import { makeStoryFile, StoryFile } from './video';
 
-type Source = { kind: 'bet'; betId: string } | { kind: 'slip' } | { kind: 'event'; eventId: string };
 
 /** Whatever is being shared, reduced to what the sheet needs: a way to draw it and where it links. */
 interface Card {
@@ -64,11 +65,6 @@ const rgba = (hex: string, a: number) => {
   return `rgb(${(n >> 16) & 255} ${(n >> 8) & 255} ${n & 255} / ${a})`;
 };
 
-export const useShare = create<{ source: Source | null; open(s: Source): void; close(): void }>((set) => ({
-  source: null,
-  open: (source) => set({ source }),
-  close: () => set({ source: null }),
-}));
 
 /** Build the card for the current source from live app state. */
 function useCard(source: Source | null): Card | null {
@@ -76,7 +72,7 @@ function useCard(source: Source | null): Card | null {
   const user = useSession((s) => s.user);
   const fmt = useSession((s) => s.settings?.oddsFormat ?? 'decimal');
   const sels = useSlip((s) => s.sels);
-  const events = useLive((s) => s.events);
+  const events = useEventsWhen(!!source);
   const [beat, setBeat] = useState(0);
   // refresh live scores in the preview every couple of seconds, not on every tick
   useEffect(() => {

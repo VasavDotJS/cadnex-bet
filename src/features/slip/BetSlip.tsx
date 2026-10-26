@@ -1,6 +1,6 @@
 /** Bet slip: right panel on desktop, draggable bottom sheet on mobile. */
 import { AnimatePresence, motion, PanInfo, useDragControls } from 'framer-motion';
-import { useShare } from '../../share/ShareStory';
+import { useShare } from '../../share/store';
 import { Check, ChevronDown, Delete, Lock, Share2, Trash2, X } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';

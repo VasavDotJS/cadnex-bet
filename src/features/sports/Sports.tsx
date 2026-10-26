@@ -1,6 +1,6 @@
 /** Sports browser and Live Centre. */
 import { motion } from 'framer-motion';
-import { useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { leagueById, leagueOrder, SPORTS } from '../../data/leagues';
 import { FeedBadge } from '../../components/FeedBadge';
@@ -10,7 +10,7 @@ import { MatchRow } from '../../components/match';
 import { press, spring } from '../../components/motion';
 import { SportGlyph } from '../../components/SportGlyph';
 import { Chip, Empty, LiveDot, TwoTone } from '../../components/ui';
-import { useLive } from '../../store/live';
+import { eventList, useEventsFor, useLive } from '../../store/live';
 import { useDayIds, useFinishedIds, useLiveIds } from '../../store/selectors';
 import { DemoBadge } from '../shell/Shell';
 
@@ -42,6 +42,21 @@ function PageTitle({ a, b }: { a: string; b: string }) {
   );
 }
 
+const PAGE = 30;
+
+/** Loads the next rows when it comes within a screen of view. */
+function LoadMore({ onMore }: { onMore: () => void }) {
+  const ref = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const io = new IntersectionObserver((e) => { if (e[0]?.isIntersecting) onMore(); }, { rootMargin: '900px 0px' });
+    io.observe(el);
+    return () => io.disconnect();
+  }, [onMore]);
+  return <div ref={ref} className="flex flex-col gap-2" aria-hidden>{[0, 1].map((i) => <div key={i} className="skeleton h-[92px] rounded-[24px]" />)}</div>;
+}
+
 export function Sports() {
   const params = useParams<{ sport?: SportId; league?: string }>();
   const nav = useNavigate();
@@ -49,14 +64,14 @@ export function Sports() {
   const league = params.league ? decodeURIComponent(params.league) : undefined;
   const [day, setDay] = useState(0);
   const ids = useDayIds(day, sport, league);
-  const events = useLive((s) => s.events);
   const ready = useLive((s) => s.ready);
   const finished = useFinishedIds(8, sport === 'all' ? undefined : sport);
-  // competitions with matches this week, for the chips
-  const leagueKey = Object.values(events).filter((e) => e.status !== 'FINISHED' && (sport === 'all' || e.sport === sport)).map((e) => e.leagueId).sort().join(',');
+  // competitions with matches this week, for the chips (re-renders only when that set changes)
+  const leagueKey = useLive((s) => [...new Set(eventList(s.events).filter((e) => e.status !== 'FINISHED' && (sport === 'all' || e.sport === sport)).map((e) => e.leagueId))].sort().join(','));
   const leagues = useMemo(() => Array.from(new Set(leagueKey ? leagueKey.split(',') : [])).sort((a, b) => leagueOrder(a) - leagueOrder(b)).map((id) => leagueById(id)), [leagueKey]);
   // group by competition; tennis groups by tournament
   const grouped = useMemo(() => {
+    const events = useLive.getState().events;
     const g = new Map<string, { name: string; sport: SportId; region: string; order: number; ids: string[] }>();
     for (const id of ids) {
       const e = events[id];
@@ -70,6 +85,20 @@ export function Sports() {
     }
     return [...g.entries()].sort((a, b) => a[1].order - b[1].order || a[1].name.localeCompare(b[1].name));
   }, [ids]); // eslint-disable-line react-hooks/exhaustive-deps
+  // render the first rows straight away and the rest as the list scrolls near them
+  const [limit, setLimit] = useState(PAGE);
+  useEffect(() => setLimit(PAGE), [sport, league, day]);
+  const { shown, more } = useMemo(() => {
+    let left = limit;
+    const out: typeof grouped = [];
+    for (const [k, g] of grouped) {
+      if (left <= 0) break;
+      out.push([k, { ...g, ids: g.ids.slice(0, left) }]);
+      left -= g.ids.length;
+    }
+    return { shown: out, more: left < 0 || out.length < grouped.length };
+  }, [grouped, limit]);
+  const grow = useCallback(() => setLimit((l) => l + PAGE), []);
   const title = league ? leagueById(league).name.split(' ') : sport === 'all' ? ['All', 'sports'] : [SPORTS.find((s) => s.id === sport)?.name ?? 'All', 'fixtures'];
   return (
     <div className="flex flex-col gap-6 px-4 pt-[max(20px,env(safe-area-inset-top))] md:px-0 lg:pt-4">
@@ -87,21 +116,24 @@ export function Sports() {
       ) : grouped.length === 0 ? (
         <Empty title="No fixtures on this day" body="Pick another day or sport. Fixtures appear here as the competitions publish them." />
       ) : (
-        grouped.map(([k, g]) => (
-          <section key={k} className="flex flex-col gap-2">
-            <div className="flex items-center gap-2 px-1">
-              <SportGlyph sport={g.sport} size={16} className="text-mute" />
-              <p className="text-[14px] font-medium">{g.name}</p>
-              {g.region && <span className="text-[12.5px] text-mute">· {g.region}</span>}
-            </div>
-            {g.ids.map((id) => <MatchRow key={id} id={id} />)}
-          </section>
-        ))
+        <>
+          {shown.map(([k, g]) => (
+            <section key={k} className="flex flex-col gap-2">
+              <div className="flex items-center gap-2 px-1">
+                <SportGlyph sport={g.sport} size={16} className="text-mute" />
+                <p className="text-[14px] font-medium">{g.name}</p>
+                {g.region && <span className="text-[12.5px] text-mute">· {g.region}</span>}
+              </div>
+              {g.ids.map((id) => <MatchRow key={id} id={id} />)}
+            </section>
+          ))}
+          {more && <LoadMore key={limit} onMore={grow} />}
+        </>
       )}
       {day === 0 && finished.length > 0 && (
         <section className="flex flex-col gap-2">
           <p className="px-1 text-[14px] font-medium">Recent <span className="text-mute">results</span></p>
-          {finished.filter((id) => !league || events[id]?.leagueId === league).map((id) => <MatchRow key={id} id={id} showLeague />)}
+          {finished.filter((id) => !league || useLive.getState().events[id]?.leagueId === league).map((id) => <MatchRow key={id} id={id} showLeague />)}
         </section>
       )}
     </div>
@@ -111,7 +143,7 @@ export function Sports() {
 export function LiveCentre() {
   const [sport, setSport] = useState<SportId | 'all'>('all');
   const all = useLiveIds();
-  const events = useLive((s) => s.events);
+  const events = useEventsFor(all);
   const ready = useLive((s) => s.ready);
   const finished = useFinishedIds(6, sport === 'all' ? undefined : sport);
   const counts = useMemo(() => {

@@ -11,14 +11,14 @@ import { press, spring } from '../../components/motion';
 import { Empty, Pill, SectionHead, Tabs, useNow } from '../../components/ui';
 import { formatMoney } from '../../lib/money';
 import { claimDaily, dailyAmount, nextDailyAt } from '../../services/rewardService';
-import { findSelection, useLive } from '../../store/live';
+import { findSelection, useEventsFor, useLive } from '../../store/live';
 import { useLiveIds, usePopularAccas, useUpcomingIds } from '../../store/selectors';
 import { useSession } from '../../store/session';
 import { useSlip } from '../../store/slip';
 import { useUi } from '../../store/ui';
 import { DemoBadge } from '../shell/Shell';
 import { InstallBanner } from '../install/Install';
-import { WrappedBanner } from '../../wrapped/Wrapped';
+import { WrappedBanner } from '../../wrapped/Banner';
 import { useUnread } from '../notifications/Notifications';
 
 function greeting(): string {
@@ -46,8 +46,9 @@ function DailyStrip() {
   useEffect(() => {
     if (user) void nextDailyAt(user.id).then(setNext);
   }, [user]);
+  const now = useNow(1000);
   if (!user || !wallet || next === null || dismissed) return null;
-  const ready = next <= Date.now();
+  const ready = next <= now;
   const claim = async () => {
     try {
       const amt = await claimDaily(user.id);
@@ -78,7 +79,7 @@ function DailyStrip() {
 function Accas() {
   const accas = usePopularAccas();
   const fmt = useOddsFmt();
-  const events = useLive((s) => s.events);
+  const events = useEventsFor(accas.flatMap((a) => a.legs.map((l) => l.ev.id)));
   if (!accas.length) return null;
   const add = (legs: (typeof accas)[number]['legs']) => {
     const sels = legs.flatMap((l) => {
@@ -130,7 +131,6 @@ export function Home() {
   const upcoming = useUpcomingIds(8);
   const ready = useLive((s) => s.ready);
   const unread = useUnread();
-  useNow(1000);
   return (
     <div className="flex flex-col gap-7">
       {/* C. gradient app header */}
