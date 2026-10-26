@@ -48,8 +48,14 @@ async function commonsFile(imageUrl: string): Promise<PlayerPhoto | null> {
   const q = `${WIKI}/w/api.php?action=query&format=json&formatversion=2&prop=imageinfo&iiprop=url|extmetadata&iiurlwidth=480&titles=${encodeURIComponent(`File:${file}`)}`;
   const data = (await json(q)) as { query?: { pages?: { imageinfo?: { thumburl?: string; url?: string; descriptionurl?: string; extmetadata?: Record<string, { value?: string }> }[] }[] } } | null;
   const info = data?.query?.pages?.[0]?.imageinfo?.[0];
-  const url = info?.thumburl ?? info?.url;
-  if (!info || !url) return null;
+  const raw = info?.thumburl ?? info?.url;
+  if (!info || !raw) return null;
+  // Wikimedia adds tracking parameters to thumbnail links; the file itself doesn't need them
+  const bare = new URL(raw);
+  bare.search = '';
+  bare.hash = '';
+  const url = allowedPhoto(bare.toString())?.toString();
+  if (!url) return null;
   const meta = info.extmetadata ?? {};
   const licence = strip(meta.LicenseShortName?.value ?? '');
   if (!FREE.test(licence)) return null; // only photos we're allowed to show

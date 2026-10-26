@@ -14,7 +14,7 @@ function mockFetch(routes: Route[]) {
 }
 const ok = (body: unknown) => () => new Response(JSON.stringify(body), { status: 200, headers: { 'content-type': 'application/json' } });
 const commons = (licence: string, artist = '<a href="//commons.wikimedia.org/wiki/User:Jane">Jane Doe</a>') => ok({
-  query: { pages: [{ imageinfo: [{ thumburl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/1/1d/Badosa.jpg/480px-Badosa.jpg', descriptionurl: 'https://commons.wikimedia.org/wiki/File:Badosa.jpg', extmetadata: { LicenseShortName: { value: licence }, Artist: { value: artist } } }] }] },
+  query: { pages: [{ imageinfo: [{ thumburl: 'https://thumb.wikimedia.org/wikipedia/commons/thumb/1/1d/Badosa.jpg/500px-Badosa.jpg?utm_source=en.wikipedia.org&utm_campaign=imageinfo', descriptionurl: 'https://commons.wikimedia.org/wiki/File:Badosa.jpg', extmetadata: { LicenseShortName: { value: licence }, Artist: { value: artist } } }] }] },
 });
 
 afterEach(() => vi.unstubAllGlobals());
@@ -26,7 +26,7 @@ describe('player photos', () => {
       [/w\/api\.php/, commons('CC BY-SA 4.0')],
     ]);
     expect(await findPlayerPhoto('Paula Badosa')).toEqual({
-      url: 'https://upload.wikimedia.org/wikipedia/commons/thumb/1/1d/Badosa.jpg/480px-Badosa.jpg',
+      url: 'https://thumb.wikimedia.org/wikipedia/commons/thumb/1/1d/Badosa.jpg/500px-Badosa.jpg',
       credit: 'Photo: Jane Doe · CC BY-SA 4.0 · Wikimedia Commons',
       source: 'https://commons.wikimedia.org/wiki/File:Badosa.jpg',
     });
