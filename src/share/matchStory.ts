@@ -23,7 +23,7 @@ export interface MatchSide {
   color: string;
   ink: string;
   logo?: string;
-  /** tennis: the player's name, for their halftone portrait */
+  /** tennis: the player's name, for their black-and-white photo */
   player?: string;
 }
 export interface MatchStory {
@@ -151,9 +151,9 @@ function crest(ctx: CanvasRenderingContext2D, a: Assets, side: MatchSide, cx: nu
     ctx.fillRect(cx - r * 2.4, cy - r * 2.4, r * 4.8, r * 4.8);
     ctx.restore();
   }
-  // tennis: the player's photo as a scanned print pasted on the poster
+  // tennis: the player's photo in black and white
   if (side.player) {
-    drawPrintCard(ctx, side.player, cx, cy, r * 2.05, cx < W / 2 ? -1 : 1, a.sans);
+    drawPrintCard(ctx, side.player, cx, cy, r * 2.05, a.sans);
     return;
   }
   // the club's own logo when there is one: lifted off the page, with a faint light rim
