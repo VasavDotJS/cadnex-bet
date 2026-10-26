@@ -16,8 +16,9 @@ interface UiState {
   mood: 'none' | 'win' | 'loss';
   fly: { id: number; x: number; y: number; label: string } | null;
   search: boolean;
-  /** the Account sheet (switch accounts, profile, theme) */
+  /** the Account sheet (switch accounts, profile, theme), and which view it opens on */
   account: boolean;
+  accountView: 'main' | 'edit';
   toast(t: Omit<Toast, 'id'>, ms?: number): void;
   dismiss(id: number): void;
   setSlip(s: UiState['slipSnap']): void;
@@ -25,7 +26,7 @@ interface UiState {
   loss(): void;
   flyFrom(x: number, y: number, label: string): void;
   setSearch(v: boolean): void;
-  setAccount(v: boolean): void;
+  setAccount(v: boolean, view?: 'main' | 'edit'): void;
 }
 
 let tid = 1;
@@ -38,6 +39,7 @@ export const useUi = create<UiState>((set, get) => ({
   fly: null,
   search: false,
   account: false,
+  accountView: 'main',
   toast(t, ms = 4200) {
     const id = tid++;
     set((s) => ({ toasts: [...s.toasts.slice(-3), { ...t, id }] }));
@@ -60,8 +62,8 @@ export const useUi = create<UiState>((set, get) => ({
   flyFrom(x, y, label) {
     set({ fly: { id: tid++, x, y, label } });
   },
-  setAccount(account) {
-    set({ account });
+  setAccount(account, view = 'main') {
+    set({ account, accountView: view });
   },
   setSearch(search) {
     set({ search });
