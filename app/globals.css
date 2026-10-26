@@ -201,7 +201,7 @@ input[type='date']::-webkit-calendar-picker-indicator {
 }
 
 /* character avatars: blink, bob, wiggle (components/avatars.tsx) */
-.av-anim .av-blink, .av-anim .av-bob, .av-anim .av-float, .av-anim .av-wiggle-l, .av-anim .av-wiggle-r, .av-anim .av-wiggle-fin, .av-anim .av-puff { transform-box: fill-box; }
+.av-anim .av-blink, .av-anim .av-bob, .av-anim .av-float, .av-anim .av-wiggle-l, .av-anim .av-wiggle-r, .av-anim .av-wiggle-fin, .av-anim .av-puff, .av-anim .av-brow, .av-anim .av-selfie { transform-box: fill-box; }
 .av-anim .av-blink { transform-origin: center; animation: av-blink 4.6s infinite; animation-delay: var(--av-delay, 0s); }
 @keyframes av-blink { 0%, 93%, 100% { transform: scaleY(1); } 95.5% { transform: scaleY(0.12); } }
 .av-anim .av-bob { transform-origin: 50% 100%; animation: av-bob 3.4s ease-in-out infinite; animation-delay: var(--av-delay, 0s); }
@@ -219,14 +219,44 @@ input[type='date']::-webkit-calendar-picker-indicator {
 .av-anim .av-puff { transform-origin: center; animation: av-puff 3.2s ease-out infinite; }
 @keyframes av-puff { 0%, 55% { opacity: 0; transform: translate(0, 0) scale(0.6); } 65% { opacity: 1; } 100% { opacity: 0; transform: translate(-6px, -10px) scale(1.4); } }
 
+.av-anim .av-brow { transform-origin: 50% 100%; animation: av-brow 5s ease-in-out infinite; animation-delay: var(--av-delay, 0s); }
+@keyframes av-brow { 0%, 60%, 100% { transform: translateY(0) rotate(0deg); } 66%, 80% { transform: translateY(-1.6px) rotate(-6deg); } }
+.av-anim .av-selfie { transform-origin: 50% 100%; animation: av-selfie 3.4s ease-in-out infinite; animation-delay: var(--av-delay, 0s); }
+@keyframes av-selfie { 0%, 100% { transform: rotate(0deg); } 50% { transform: rotate(-5deg) translateY(-0.6px); } }
+
+/* the admin's gold ring: a turning band of gold with a soft glow */
+.gold-ring { position: relative; isolation: isolate; }
+.gold-ring::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 9999px;
+  z-index: -1;
+  background: conic-gradient(from 0deg, #8A5A00, #FFD76A, #FFF6D0, #E0A91F, #8A5A00, #F2C14E, #FFF1B0, #B07A12, #8A5A00);
+  animation: gold-spin 3.2s linear infinite;
+}
+.gold-ring::after {
+  content: '';
+  position: absolute;
+  inset: -1px;
+  border-radius: 9999px;
+  z-index: -2;
+  box-shadow: 0 0 10px 1px rgb(255 196 64 / 0.55);
+  animation: gold-glow 2.4s ease-in-out infinite;
+}
+@keyframes gold-spin { to { transform: rotate(360deg); } }
+@keyframes gold-glow { 0%, 100% { opacity: 0.45; } 50% { opacity: 1; } }
+
 @media (prefers-reduced-motion: reduce) {
   .orb, .breathe, .skeleton { animation: none !important; }
-  .av-anim * { animation: none !important; }
+  .av-anim *, .gold-ring::before, .gold-ring::after { animation: none !important; }
 }
 :root[data-motion='reduced'] .orb,
 :root[data-motion='reduced'] .breathe,
 :root[data-motion='reduced'] .skeleton,
-:root[data-motion='reduced'] .av-anim * {
+:root[data-motion='reduced'] .av-anim *,
+:root[data-motion='reduced'] .gold-ring::before,
+:root[data-motion='reduced'] .gold-ring::after {
   animation: none !important;
 }
 

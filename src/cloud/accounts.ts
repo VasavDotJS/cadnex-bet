@@ -22,6 +22,8 @@ export interface SavedAccount {
   expiresAt: number;
   /** last time this account was the active one (ms), for ordering */
   usedAt: number;
+  /** shown with the admin's gold ring (display only; the server decides what an admin can do) */
+  admin?: boolean;
 }
 
 const KEY = 'cdnx-accounts';
@@ -48,8 +50,8 @@ function write(list: SavedAccount[]): void {
 }
 
 /** What screens may see: no tokens. */
-export type AccountCard = Pick<SavedAccount, 'id' | 'username' | 'email' | 'avatarSeed' | 'usedAt'>;
-const publicView = (a: SavedAccount): AccountCard => ({ id: a.id, username: a.username, email: a.email, avatarSeed: a.avatarSeed, usedAt: a.usedAt });
+export type AccountCard = Pick<SavedAccount, 'id' | 'username' | 'email' | 'avatarSeed' | 'usedAt' | 'admin'>;
+const publicView = (a: SavedAccount): AccountCard => ({ id: a.id, username: a.username, email: a.email, avatarSeed: a.avatarSeed, usedAt: a.usedAt, admin: a.admin });
 
 export const useAccounts = create<{ list: AccountCard[] }>(() => ({ list: [] }));
 
@@ -73,12 +75,13 @@ export function rememberSession(s: Session, profile?: { username?: string; email
     refresh: s.refresh_token,
     expiresAt: (s.expires_at ?? 0) * 1000,
     usedAt: Date.now(),
+    admin: prev?.admin,
   };
   write([next, ...list.filter((a) => a.id !== next.id)]);
 }
 
 /** Update the name and avatar shown for an account (after a profile edit). */
-export function updateAccountCard(id: string, patch: { username?: string; email?: string; avatarSeed?: number }): void {
+export function updateAccountCard(id: string, patch: { username?: string; email?: string; avatarSeed?: number; admin?: boolean }): void {
   const list = read();
   const a = list.find((x) => x.id === id);
   if (!a) return;

@@ -10,6 +10,7 @@ import { Crest } from '../../components/Crest';
 import { Money } from '../../components/Money';
 import { press, spring } from '../../components/motion';
 import { SportGlyph } from '../../components/SportGlyph';
+import { ADMIN_SEED } from '../../components/avatars';
 import { Avatar } from '../../components/ui';
 import { useLive } from '../../store/live';
 import { useSession } from '../../store/session';
@@ -47,6 +48,7 @@ const NAV = [
 export function BottomNav() {
   const loc = useLocation();
   const user = useSession((s) => s.user);
+  const isAdmin = useSession((s) => s.isAdmin);
   const accountOpen = useUi((s) => s.account);
   const liveCount = useLive((s) => Object.values(s.events).filter((e) => e.status === 'LIVE').length);
   const openBets = useSession((s) => s.bets.filter((b) => b.status === 'OPEN' || b.status === 'PARTIALLY_CASHED_OUT').length);
@@ -73,9 +75,13 @@ export function BottomNav() {
           <button onClick={() => useUi.getState().setAccount(true)} aria-label="Account" aria-haspopup="dialog" aria-expanded={accountOpen} className="relative">
             <motion.span whileTap={press} className="relative flex h-12 w-[44px] items-center justify-center rounded-full">
               {user ? (
-                <span className={`rounded-full p-[2px] ${accountOpen ? 'bg-lime' : 'bg-[rgb(var(--line)/0.14)]'}`}>
-                  <Avatar seed={user.avatarSeed} name={user.username} size={26} />
-                </span>
+                isAdmin || user.avatarSeed === ADMIN_SEED ? (
+                  <Avatar seed={user.avatarSeed} name={user.username} size={32} ring />
+                ) : (
+                  <span className={`rounded-full p-[2px] ${accountOpen ? 'bg-lime' : 'bg-[rgb(var(--line)/0.14)]'}`}>
+                    <Avatar seed={user.avatarSeed} name={user.username} size={26} />
+                  </span>
+                )
               ) : (
                 <UserRound size={20} strokeWidth={1.5} className={accountOpen ? 'text-ink' : 'text-mute'} />
               )}
@@ -89,6 +95,7 @@ export function BottomNav() {
 
 function DesktopHeader() {
   const user = useSession((s) => s.user);
+  const isAdmin = useSession((s) => s.isAdmin);
   const wallet = useSession((s) => s.wallet);
   const hidden = useSession((s) => s.settings?.hideBalance ?? false);
   const unread = useUnread();
@@ -124,7 +131,7 @@ function DesktopHeader() {
               <Bell size={19} strokeWidth={1.5} />
               {unread > 0 && <span className="absolute right-2 top-2 h-2 w-2 rounded-full bg-lime" />}
             </Link>
-            <button onClick={() => useUi.getState().setAccount(true)} aria-label="Account" aria-haspopup="dialog" className="rounded-full"><Avatar seed={user.avatarSeed} name={user.username} size={38} /></button>
+            <button onClick={() => useUi.getState().setAccount(true)} aria-label="Account" aria-haspopup="dialog" className="rounded-full"><Avatar seed={user.avatarSeed} name={user.username} size={38} ring={isAdmin} /></button>
           </>
         ) : (
           <>

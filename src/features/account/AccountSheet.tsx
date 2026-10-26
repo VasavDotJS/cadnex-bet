@@ -8,7 +8,7 @@ import { FormEvent, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AccountCard, MAX_ACCOUNTS, updateAccountCard, useAccounts, forgetAccount } from '../../cloud/accounts';
 import { clearLocal } from '../../cloud/sync';
-import { CHARACTERS, CharacterAvatar, characterFor, characterSeed } from '../../components/avatars';
+import { ADMIN_SEED, CHARACTERS, CharacterAvatar, characterFor, characterSeed, OWNER } from '../../components/avatars';
 import { press, spring } from '../../components/motion';
 import { Sheet } from '../../components/Sheet';
 import { Avatar, Pill } from '../../components/ui';
@@ -59,16 +59,17 @@ const inputCls = 'h-12 w-full rounded-[16px] bg-surface2 px-4 text-[15px] outlin
 
 /** Your initial in colours (tap again for new ones), or one of the characters. */
 function AvatarPicker({ seed, name, onPick }: { seed: number; name: string; onPick: (seed: number) => void }) {
+  const isAdmin = useSession((s) => s.isAdmin);
   const isCharacter = !!characterFor(seed);
   const [colours, setColours] = useState(isCharacter ? Math.floor(Math.random() * 360) : seed);
   const chosen = characterFor(seed);
   return (
     <div className="flex flex-col gap-3">
       <div className="flex items-center gap-4">
-        <Avatar seed={seed} name={name} size={72} />
+        <Avatar seed={seed} name={name} size={72} ring={isAdmin} />
         <div className="min-w-0">
-          <p className="text-[16px] font-medium">{chosen ? chosen.name : 'Your initial'}</p>
-          <p className="text-[13px] text-mute">{chosen ? 'Pick another below, or go back to your initial.' : 'Tap it again for new colours, or pick a character.'}</p>
+          <p className="text-[16px] font-medium">{seed === ADMIN_SEED ? 'You, in 3D' : chosen ? chosen.name : 'Your initial'}</p>
+          <p className="text-[13px] text-mute">{seed === ADMIN_SEED ? 'Only you have this one. The gold ring stays whichever you pick.' : chosen ? 'Pick another below, or go back to your initial.' : 'Tap it again for new colours, or pick a character.'}</p>
         </div>
       </div>
       <div role="radiogroup" aria-label="Avatar" className="grid grid-cols-4 gap-2.5 min-[400px]:grid-cols-5">
@@ -82,6 +83,14 @@ function AvatarPicker({ seed, name, onPick }: { seed: number; name: string; onPi
           </span>
           <span className="absolute -bottom-0.5 -right-0.5 inline-flex h-6 w-6 items-center justify-center rounded-full bg-surface text-mute shadow"><RefreshCw size={11} /></span>
         </motion.button>
+        {isAdmin && (
+          <motion.button type="button" role="radio" aria-checked={seed === ADMIN_SEED} aria-label="You, in 3D (admin only)" title="You, in 3D" whileTap={press} onClick={() => onPick(ADMIN_SEED)}
+            className={`flex aspect-square items-center justify-center rounded-full p-[3px] ${seed === ADMIN_SEED ? 'bg-lime' : 'bg-transparent'}`}>
+            <span className="inline-flex h-full w-full overflow-hidden rounded-full [&>span]:!h-full [&>span]:!w-full [&_svg]:!h-full [&_svg]:!w-full">
+              <CharacterAvatar c={OWNER} size={56} />
+            </span>
+          </motion.button>
+        )}
         {CHARACTERS.map((c, i) => {
           const on = seed === characterSeed(i);
           return (
@@ -149,7 +158,7 @@ function AccountRow({ a, active, busy, onPick, onRemove }: { a: AccountCard; act
   return (
     <div className="flex items-center gap-1 border-b hair last:border-0">
       <button onClick={onPick} disabled={active || busy} aria-current={active ? 'true' : undefined} aria-label={active ? `${a.username}, active account` : `Switch to ${a.username}`} className="flex min-w-0 flex-1 items-center gap-3 py-3 pl-4 text-left enabled:hover:bg-surface2/60">
-        <Avatar seed={a.avatarSeed} name={a.username} size={40} />
+        <Avatar seed={a.avatarSeed} name={a.username} size={40} ring={a.admin} />
         <span className="min-w-0 flex-1">
           <span className="block truncate text-[15px] font-medium">{a.username}</span>
           <span className="block truncate text-[12.5px] text-mute">{a.email}</span>
@@ -178,6 +187,7 @@ export function AccountSheet() {
   const startView = useUi((s) => s.accountView);
   const close = () => useUi.getState().setAccount(false);
   const user = useSession((s) => s.user);
+  const isAdmin = useSession((s) => s.isAdmin);
   const accounts = useAccounts((s) => s.list);
   const nav = useNavigate();
   const [view, setView] = useState<'main' | 'edit'>('main');
@@ -188,7 +198,8 @@ export function AccountSheet() {
   }, [open, startView]);
 
   const others = accounts.filter((a) => a.id !== user?.id);
-  const current = user ? accounts.find((a) => a.id === user.id) ?? { id: user.id, username: user.username, email: user.email, avatarSeed: user.avatarSeed, usedAt: Date.now() } : null;
+  const saved = user ? accounts.find((a) => a.id === user.id) : undefined;
+  const current = user ? { ...(saved ?? { id: user.id, username: user.username, email: user.email, avatarSeed: user.avatarSeed, usedAt: Date.now() }), admin: isAdmin } : null;
 
   const go = (to: string, state?: unknown) => { close(); nav(to, { state }); };
 
@@ -235,7 +246,7 @@ export function AccountSheet() {
           <motion.div key="main" initial={{ opacity: 0, x: -24 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -24 }} transition={{ duration: 0.18 }} className="flex flex-col gap-6">
             {user && current ? (
               <div className="flex items-center gap-4">
-                <Avatar seed={user.avatarSeed} name={user.username} size={60} />
+                <Avatar seed={user.avatarSeed} name={user.username} size={60} ring={isAdmin} />
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-[21px] font-semibold leading-tight tracking-tighter2">{user.username}</p>
                   <p className="truncate text-[13.5px] text-mute">{user.email}</p>
