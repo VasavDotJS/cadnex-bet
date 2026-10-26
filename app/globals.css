@@ -200,12 +200,33 @@ input[type='date']::-webkit-calendar-picker-indicator {
   box-shadow: 0 0 0 1px rgb(var(--line) / 0.08);
 }
 
+/* character avatars: blink, bob, wiggle (components/avatars.tsx) */
+.av-anim .av-blink, .av-anim .av-bob, .av-anim .av-float, .av-anim .av-wiggle-l, .av-anim .av-wiggle-r, .av-anim .av-wiggle-fin, .av-anim .av-puff { transform-box: fill-box; }
+.av-anim .av-blink { transform-origin: center; animation: av-blink 4.6s infinite; animation-delay: var(--av-delay, 0s); }
+@keyframes av-blink { 0%, 93%, 100% { transform: scaleY(1); } 95.5% { transform: scaleY(0.12); } }
+.av-anim .av-bob { transform-origin: 50% 100%; animation: av-bob 3.4s ease-in-out infinite; animation-delay: var(--av-delay, 0s); }
+@keyframes av-bob { 0%, 100% { transform: translateY(0) rotate(0deg); } 50% { transform: translateY(-1.2px) rotate(-2deg); } }
+.av-anim .av-float { animation: av-float 2.8s ease-in-out infinite; animation-delay: var(--av-delay, 0s); }
+@keyframes av-float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-2.4px); } }
+.av-anim .av-wiggle-l { transform-origin: 70% 100%; animation: av-wiggle-l 3.8s ease-in-out infinite; animation-delay: var(--av-delay, 0s); }
+.av-anim .av-wiggle-r { transform-origin: 30% 100%; animation: av-wiggle-r 3.8s ease-in-out infinite; animation-delay: var(--av-delay, 0s); }
+@keyframes av-wiggle-l { 0%, 70%, 100% { transform: rotate(0deg); } 76% { transform: rotate(-12deg); } 82% { transform: rotate(6deg); } 88% { transform: rotate(0deg); } }
+@keyframes av-wiggle-r { 0%, 74%, 100% { transform: rotate(0deg); } 80% { transform: rotate(12deg); } 86% { transform: rotate(-6deg); } 92% { transform: rotate(0deg); } }
+.av-anim .av-wiggle-fin { transform-origin: 30% 100%; animation: av-fin 2.4s ease-in-out infinite; }
+@keyframes av-fin { 0%, 100% { transform: translateX(0) rotate(0deg); } 50% { transform: translateX(2px) rotate(6deg); } }
+.av-anim .av-pulse { animation: av-pulse 1.6s ease-in-out infinite; }
+@keyframes av-pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.35; } }
+.av-anim .av-puff { transform-origin: center; animation: av-puff 3.2s ease-out infinite; }
+@keyframes av-puff { 0%, 55% { opacity: 0; transform: translate(0, 0) scale(0.6); } 65% { opacity: 1; } 100% { opacity: 0; transform: translate(-6px, -10px) scale(1.4); } }
+
 @media (prefers-reduced-motion: reduce) {
   .orb, .breathe, .skeleton { animation: none !important; }
+  .av-anim * { animation: none !important; }
 }
 :root[data-motion='reduced'] .orb,
 :root[data-motion='reduced'] .breathe,
-:root[data-motion='reduced'] .skeleton {
+:root[data-motion='reduced'] .skeleton,
+:root[data-motion='reduced'] .av-anim * {
   animation: none !important;
 }
 

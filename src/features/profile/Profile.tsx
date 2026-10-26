@@ -1,6 +1,6 @@
 /** Profile, statistics and settings. */
 import { motion } from 'framer-motion';
-import { ChevronRight, Download, LogOut, RefreshCw, ShieldCheck, Sparkles, Trash2 } from 'lucide-react';
+import { ChevronRight, Download, LogOut, Pencil, ShieldCheck, Sparkles, Trash2 } from 'lucide-react';
 import { useCanInstall, useInstall } from '../../pwa/install';
 import { adminApi } from '../../admin/api';
 import { useOpenWrapped } from '../../wrapped/Wrapped';
@@ -49,10 +49,8 @@ export function Profile() {
   const wallet = useSession((s) => s.wallet);
   const st = useBalanceStats();
   const nav = useNavigate();
-  const [edit, setEdit] = useState(false);
   const [pw, setPw] = useState(false);
   const [del, setDel] = useState(false);
-  const [form, setForm] = useState({ username: user.username, email: user.email });
   const [pwf, setPwf] = useState({ current: '', next: '' });
   const [err, setErr] = useState('');
   const canInstall = useCanInstall();
@@ -63,16 +61,6 @@ export function Profile() {
   if (!wallet || !st) return null;
   const s = st.all;
   const code = wallet.currency;
-  const save = async () => {
-    try {
-      const { user: u, emailPending } = await authService.updateProfile(user.id, form, user);
-      useSession.setState({ user: u });
-      setEdit(false);
-      useUi.getState().toast(emailPending
-        ? { tone: 'neutral', title: 'Confirm your new email', body: `We sent a link to ${form.email.trim()}. The change applies once you open it.` }
-        : { tone: 'neutral', title: 'Profile saved' });
-    } catch (e) { setErr(e instanceof AuthError ? e.message : 'Could not save.'); }
-  };
   const changePw = async () => {
     try {
       await authService.changePassword(user.email, pwf.current, pwf.next);
@@ -95,9 +83,9 @@ export function Profile() {
   return (
     <div className="flex flex-col gap-6 px-4 pt-[max(20px,env(safe-area-inset-top))] md:px-0 lg:pt-4">
       <div className="flex items-center gap-4">
-        <motion.button whileTap={press} onClick={async () => { const { user: u } = await authService.updateProfile(user.id, { avatarSeed: Math.floor(Math.random() * 360) }, user); useSession.setState({ user: u }); }} aria-label="Change avatar colours" className="relative">
+        <motion.button whileTap={press} onClick={() => useUi.getState().setAccount(true, 'edit')} aria-label="Change avatar" className="relative">
           <Avatar seed={user.avatarSeed} name={user.username} size={72} />
-          <span className="absolute -bottom-1 -right-1 inline-flex h-7 w-7 items-center justify-center rounded-full bg-surface text-mute shadow"><RefreshCw size={13} /></span>
+          <span className="absolute -bottom-1 -right-1 inline-flex h-7 w-7 items-center justify-center rounded-full bg-surface text-mute shadow"><Pencil size={13} /></span>
         </motion.button>
         <div className="min-w-0">
           <h1 className="truncate text-[30px] font-semibold leading-none tracking-tighter2">{user.username}</h1>
@@ -131,7 +119,7 @@ export function Profile() {
         {[
           { label: 'Your week, wrapped', on: () => openWrapped('week'), icon: <Sparkles size={17} strokeWidth={1.5} className="text-lavender" /> },
           { label: 'Your month, wrapped', on: () => openWrapped('month'), icon: <Sparkles size={17} strokeWidth={1.5} className="text-lavender" /> },
-          { label: 'Edit profile', on: () => { setErr(''); setEdit(true); } },
+          { label: 'Edit profile', on: () => useUi.getState().setAccount(true, 'edit') },
           { label: 'Change password', on: () => { setErr(''); setPw(true); } },
           { label: 'Settings', to: '/settings' },
           { label: 'Responsible gaming', to: '/responsible', icon: <ShieldCheck size={17} strokeWidth={1.5} className="text-mute" /> },
@@ -150,14 +138,6 @@ export function Profile() {
         <Pill tone="danger" onClick={() => setDel(true)}><Trash2 size={16} strokeWidth={1.5} />Delete account</Pill>
       </div>
 
-      <Sheet open={edit} onClose={() => setEdit(false)} title={<>Edit <span className="text-mute">profile</span></>}>
-        <div className="flex flex-col gap-3">
-          <input value={form.username} onChange={(e) => setForm({ ...form, username: e.target.value })} aria-label="Username" className={inputCls} />
-          <input value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} aria-label="Email" className={inputCls} />
-          {err && <p className="text-[13px] text-down">{err}</p>}
-          <Pill tone="lime" size="lg" onClick={save}>Save</Pill>
-        </div>
-      </Sheet>
       <Sheet open={pw} onClose={() => setPw(false)} title={<>Change <span className="text-mute">password</span></>}>
         <div className="flex flex-col gap-3">
           <input type="password" placeholder="Current password" value={pwf.current} onChange={(e) => setPwf({ ...pwf, current: e.target.value })} aria-label="Current password" autoComplete="current-password" className={inputCls} />

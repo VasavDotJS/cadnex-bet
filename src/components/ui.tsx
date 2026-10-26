@@ -1,5 +1,6 @@
 /** Small shared building blocks: pills, chips, icon wells, headings, tabs, avatars. */
 import { motion } from 'framer-motion';
+import { CharacterAvatar, characterFor } from './avatars';
 import { ComponentProps, ReactNode, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { press, spring } from './motion';
@@ -97,7 +98,9 @@ export function LiveTag() {
   );
 }
 
-export function Avatar({ seed, name, size = 40 }: { seed: number; name: string; size?: number }) {
+export function Avatar({ seed, name, size = 40, still }: { seed: number; name: string; size?: number; still?: boolean }) {
+  const character = characterFor(seed);
+  if (character) return <CharacterAvatar c={character} size={size} still={still ?? size < 24} phase={(seed * 0.37) % 4} />;
   const h1 = seed % 360;
   const h2 = (seed * 7 + 140) % 360;
   return (

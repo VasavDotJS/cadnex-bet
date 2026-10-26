@@ -8,6 +8,7 @@ import { FormEvent, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AccountCard, MAX_ACCOUNTS, updateAccountCard, useAccounts, forgetAccount } from '../../cloud/accounts';
 import { clearLocal } from '../../cloud/sync';
+import { CHARACTERS, CharacterAvatar, characterFor, characterSeed } from '../../components/avatars';
 import { press, spring } from '../../components/motion';
 import { Sheet } from '../../components/Sheet';
 import { Avatar, Pill } from '../../components/ui';
@@ -56,7 +57,48 @@ function SectionLabel({ children }: { children: string }) {
 
 const inputCls = 'h-12 w-full rounded-[16px] bg-surface2 px-4 text-[15px] outline-none placeholder:text-faint focus:ring-2 focus:ring-lime';
 
-/** Edit the username, email and avatar colours, right in the sheet. */
+/** Your initial in colours (tap again for new ones), or one of the characters. */
+function AvatarPicker({ seed, name, onPick }: { seed: number; name: string; onPick: (seed: number) => void }) {
+  const isCharacter = !!characterFor(seed);
+  const [colours, setColours] = useState(isCharacter ? Math.floor(Math.random() * 360) : seed);
+  const chosen = characterFor(seed);
+  return (
+    <div className="flex flex-col gap-3">
+      <div className="flex items-center gap-4">
+        <Avatar seed={seed} name={name} size={72} />
+        <div className="min-w-0">
+          <p className="text-[16px] font-medium">{chosen ? chosen.name : 'Your initial'}</p>
+          <p className="text-[13px] text-mute">{chosen ? 'Pick another below, or go back to your initial.' : 'Tap it again for new colours, or pick a character.'}</p>
+        </div>
+      </div>
+      <div role="radiogroup" aria-label="Avatar" className="grid grid-cols-4 gap-2.5 min-[400px]:grid-cols-5">
+        <motion.button
+          type="button" role="radio" aria-checked={!isCharacter} aria-label="Your initial in colours" whileTap={press}
+          onClick={() => { const next = isCharacter ? colours : Math.floor(Math.random() * 360); setColours(next); onPick(next); }}
+          className={`relative flex aspect-square items-center justify-center rounded-full p-[3px] ${!isCharacter ? 'bg-lime' : 'bg-transparent'}`}
+        >
+          <span className="relative inline-flex h-full w-full items-center justify-center overflow-hidden rounded-full [&>span]:!h-full [&>span]:!w-full">
+            <Avatar seed={isCharacter ? colours : seed} name={name} size={56} />
+          </span>
+          <span className="absolute -bottom-0.5 -right-0.5 inline-flex h-6 w-6 items-center justify-center rounded-full bg-surface text-mute shadow"><RefreshCw size={11} /></span>
+        </motion.button>
+        {CHARACTERS.map((c, i) => {
+          const on = seed === characterSeed(i);
+          return (
+            <motion.button key={c.id} type="button" role="radio" aria-checked={on} aria-label={c.name} title={c.name} whileTap={press} onClick={() => onPick(characterSeed(i))}
+              className={`flex aspect-square items-center justify-center rounded-full p-[3px] ${on ? 'bg-lime' : 'bg-transparent'}`}>
+              <span className="inline-flex h-full w-full overflow-hidden rounded-full [&>span]:!h-full [&>span]:!w-full [&_svg]:!h-full [&_svg]:!w-full">
+                <CharacterAvatar c={c} size={56} phase={i * 0.53} />
+              </span>
+            </motion.button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+/** Edit the username, email and avatar, right in the sheet. */
 function EditProfile({ onDone }: { onDone: () => void }) {
   const user = useSession((s) => s.user)!;
   const [form, setForm] = useState({ username: user.username, email: user.email });
@@ -82,13 +124,7 @@ function EditProfile({ onDone }: { onDone: () => void }) {
   };
   return (
     <form onSubmit={save} className="flex flex-col gap-4" noValidate>
-      <div className="flex items-center gap-4">
-        <motion.button type="button" whileTap={press} onClick={() => setSeed(Math.floor(Math.random() * 360))} aria-label="New avatar colours" className="relative">
-          <Avatar seed={seed} name={form.username || user.username} size={64} />
-          <span className="absolute -bottom-1 -right-1 inline-flex h-7 w-7 items-center justify-center rounded-full bg-surface text-mute shadow"><RefreshCw size={13} /></span>
-        </motion.button>
-        <p className="text-[13.5px] leading-snug text-mute">Tap your avatar for new colours.</p>
-      </div>
+      <AvatarPicker seed={seed} name={form.username || user.username} onPick={setSeed} />
       <label className="flex flex-col gap-1.5">
         <span className="px-1 text-[13px] text-mute">Username</span>
         <input value={form.username} onChange={(e) => { setForm({ ...form, username: e.target.value }); setErr(null); }} autoComplete="username" className={inputCls} />
@@ -139,13 +175,17 @@ function AccountRow({ a, active, busy, onPick, onRemove }: { a: AccountCard; act
 
 export function AccountSheet() {
   const open = useUi((s) => s.account);
+  const startView = useUi((s) => s.accountView);
   const close = () => useUi.getState().setAccount(false);
   const user = useSession((s) => s.user);
   const accounts = useAccounts((s) => s.list);
   const nav = useNavigate();
   const [view, setView] = useState<'main' | 'edit'>('main');
   const [switchingTo, setSwitchingTo] = useState<string | null>(null);
-  useEffect(() => { if (!open) { setView('main'); setSwitchingTo(null); } }, [open]);
+  useEffect(() => {
+    if (open) setView(startView === 'edit' && useSession.getState().user ? 'edit' : 'main');
+    else setSwitchingTo(null);
+  }, [open, startView]);
 
   const others = accounts.filter((a) => a.id !== user?.id);
   const current = user ? accounts.find((a) => a.id === user.id) ?? { id: user.id, username: user.username, email: user.email, avatarSeed: user.avatarSeed, usedAt: Date.now() } : null;
