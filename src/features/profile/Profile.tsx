@@ -84,7 +84,7 @@ export function Profile() {
     <div className="flex flex-col gap-6 px-4 pt-[max(20px,env(safe-area-inset-top))] md:px-0 lg:pt-4">
       <div className="flex items-center gap-4">
         <motion.button whileTap={press} onClick={() => useUi.getState().setAccount(true, 'edit')} aria-label="Change avatar" className="relative">
-          <Avatar seed={user.avatarSeed} name={user.username} size={72} />
+          <Avatar seed={user.avatarSeed} name={user.username} size={72} ring={isAdmin} />
           <span className="absolute -bottom-1 -right-1 inline-flex h-7 w-7 items-center justify-center rounded-full bg-surface text-mute shadow"><Pencil size={13} /></span>
         </motion.button>
         <div className="min-w-0">

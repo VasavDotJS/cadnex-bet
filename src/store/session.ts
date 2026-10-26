@@ -4,6 +4,7 @@
  */
 import { create } from 'zustand';
 import { dropAccount, loadAccounts, rememberSession, savedSession, updateAccountCard, useAccounts } from '../cloud/accounts';
+import { adminApi } from '../admin/api';
 import { cloud } from '../cloud/client';
 import { clearLocal, onCloudChange, onProfileChange, startSync, stopSync } from '../cloud/sync';
 import { BetRow, db, DeviceRow, LedgerRow, SettingsRow, WalletRow } from '../db/db';
@@ -21,6 +22,8 @@ interface SessionState {
   device: DeviceRow;
   /** opened from a password-reset email: ask for a new password */
   recovery: boolean;
+  /** the signed-in account is an admin (gold ring, owner avatar); the database enforces what it can do */
+  isAdmin: boolean;
   boot(): Promise<void>;
   setUser(u: PublicUser | null): Promise<void>;
   refreshWallet(): Promise<void>;
@@ -51,7 +54,12 @@ let switching = false;
 export const useSession = create<SessionState>((set, get) => {
   /** Sign the device into an account: sync it down (all of it on a new device), then load. */
   const open = async (user: PublicUser) => {
-    set({ user });
+    set({ user, isAdmin: false });
+    void adminApi.whoami().then((w) => {
+      if (get().user?.id !== user.id) return;
+      set({ isAdmin: !!w.admin });
+      updateAccountCard(user.id, { admin: !!w.admin });
+    }, () => {});
     const fresh = !(await db.wallets.get(user.id));
     try {
       await startSync(user.id, { fresh });
@@ -147,6 +155,7 @@ export const useSession = create<SessionState>((set, get) => {
     settings: null,
     device: DEVICE_DEFAULT,
     recovery: false,
+    isAdmin: false,
 
     async boot() {
       await purgeLegacyAccounts();
@@ -165,7 +174,7 @@ export const useSession = create<SessionState>((set, get) => {
 
     async setUser(user) {
       if (!user) {
-        set({ user: null, wallet: null, bets: [], ledger: [], settings: null });
+        set({ user: null, wallet: null, bets: [], ledger: [], settings: null, isAdmin: false });
         return;
       }
       if (opening?.id === user.id) return opening.p;
