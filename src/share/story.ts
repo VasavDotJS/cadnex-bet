@@ -14,7 +14,7 @@ import type { SlipSel } from '../store/slip';
 import type { SharedPick } from './link';
 import { logoFor } from '../lib/logo';
 import { drawContained, logoImage } from './logos';
-import { DISC_CELLS, drawPortrait } from './portraits';
+import { drawPrintDisc } from './portraits';
 
 export const W = 1080;
 export const H = 1920;
@@ -545,7 +545,7 @@ export function drawStory(ctx: CanvasRenderingContext2D, t: number, s: Story, a:
       ctx.arc(x, cy, R + 4, 0, Math.PI * 2);
       ctx.fillStyle = '#16161B';
       ctx.fill();
-      if (drawPortrait(ctx, team.player, DISC_CELLS, x, cy, R)) return;
+      if (drawPrintDisc(ctx, team.player, x, cy, R)) return;
       const img = logoImage(team.logo);
       if (img) {
         ctx.beginPath();

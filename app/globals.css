@@ -184,48 +184,57 @@ input[type='date']::-webkit-calendar-picker-indicator {
   filter: invert(0.6);
 }
 
-/* tennis player portraits: a scanner line passes over the dot print every few seconds */
-.portrait { border-radius: 9999px; isolation: isolate; box-shadow: 0 0 0 1px rgb(var(--line) / 0.08); }
-.portrait-scan {
-  position: absolute;
-  inset: 0;
-  border-radius: 9999px;
+/* tennis player portraits: scanned halftone prints, revealed once by a passing scanner light */
+.print {
+  isolation: isolate;
   overflow: hidden;
-  pointer-events: none;
-  mix-blend-mode: screen;
+  box-shadow: 0 0 0 1px rgb(var(--line) / 0.1), 0 6px 16px -8px rgb(0 0 0 / 0.6);
 }
-.portrait-scan::before {
-  content: '';
+.print-chip {
+  color: #2a2722;
+  letter-spacing: -0.02em;
+  background:
+    radial-gradient(120% 120% at 30% 20%, transparent 55%, rgb(60 50 35 / 0.18)),
+    #e7e1d4;
+}
+.print-reveal { animation: print-reveal 900ms cubic-bezier(0.3, 0, 0.2, 1) both; }
+@keyframes print-reveal {
+  from { clip-path: inset(0 0 100% 0); }
+  to { clip-path: inset(0 0 0 0); }
+}
+.print-bar {
   position: absolute;
   left: 0;
   right: 0;
-  top: -40%;
-  height: 40%;
-  background: linear-gradient(to bottom, transparent 0%, rgb(var(--lime) / 0.06) 60%, rgb(var(--lime) / 0.5) 96%, transparent 100%);
-  animation: portrait-scan 9s cubic-bezier(0.45, 0, 0.3, 1) infinite;
-  animation-delay: inherit;
+  top: 0;
+  height: 16%;
+  pointer-events: none;
+  background: linear-gradient(to bottom, rgb(255 255 255 / 0) 0%, rgb(255 255 255 / 0.35) 70%, rgb(var(--lime)) 92%, rgb(var(--lime) / 0) 100%);
+  mix-blend-mode: screen;
+  animation: print-bar 900ms cubic-bezier(0.3, 0, 0.2, 1) both;
 }
-@keyframes portrait-scan {
-  0% { transform: translateY(0); opacity: 0; }
-  2% { opacity: 1; }
-  20% { transform: translateY(350%); opacity: 1; }
-  22%, 100% { transform: translateY(350%); opacity: 0; }
+@keyframes print-bar {
+  0% { transform: translateY(-100%); opacity: 1; }
+  90% { opacity: 1; }
+  100% { transform: translateY(560%); opacity: 0; }
 }
-.portrait-tbd {
+.print-tbd {
   background: radial-gradient(circle at 50% 50%, rgb(var(--surface-3)) 0 1px, transparent 1.6px) 0 0 / 5px 5px, rgb(var(--surface-2));
   box-shadow: 0 0 0 1px rgb(var(--line) / 0.08);
 }
 
 @media (prefers-reduced-motion: reduce) {
   .orb, .breathe, .skeleton { animation: none !important; }
-  .portrait-scan::before { animation: none !important; opacity: 0; }
+  .print-reveal, .print-bar { animation: none !important; }
+  .print-bar { display: none; }
 }
 :root[data-motion='reduced'] .orb,
 :root[data-motion='reduced'] .breathe,
 :root[data-motion='reduced'] .skeleton {
   animation: none !important;
 }
-:root[data-motion='reduced'] .portrait-scan::before { animation: none !important; opacity: 0; }
+:root[data-motion='reduced'] .print-reveal { animation: none !important; }
+:root[data-motion='reduced'] .print-bar { display: none; }
 
 /* frosted wallet card inner mesh */
 .wallet-mesh {

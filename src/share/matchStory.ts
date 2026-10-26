@@ -12,7 +12,7 @@ import { GLYPHS } from '../components/glyphs';
 import type { EventPublic } from '../engine/types';
 import { isPlaceholderName } from '../lib/placeholder';
 import { drawContained, logoImage } from './logos';
-import { CREST_CELLS, drawPortrait, portraitArt } from './portraits';
+import { drawPrintCard } from './portraits';
 import { Assets, clamp, H, outBack, outCubic, rand, rr, span, tracked, W } from './story';
 
 export type MatchPhase = 'PRE' | 'LIVE' | 'FT';
@@ -151,28 +151,9 @@ function crest(ctx: CanvasRenderingContext2D, a: Assets, side: MatchSide, cx: nu
     ctx.fillRect(cx - r * 2.4, cy - r * 2.4, r * 4.8, r * 4.8);
     ctx.restore();
   }
-  // tennis: the player's halftone portrait on a dark disc, ringed in their colour
-  if (side.player && portraitArt(side.player, CREST_CELLS)) {
-    ctx.save();
-    ctx.shadowColor = 'rgba(0,0,0,0.6)';
-    ctx.shadowBlur = 50;
-    ctx.shadowOffsetY = 24;
-    ctx.beginPath();
-    ctx.arc(cx, cy, r, 0, Math.PI * 2);
-    ctx.fillStyle = '#141418';
-    ctx.fill();
-    ctx.restore();
-    drawPortrait(ctx, side.player, CREST_CELLS, cx, cy, r);
-    ctx.beginPath();
-    ctx.arc(cx, cy, r + 5, 0, Math.PI * 2);
-    ctx.lineWidth = 6;
-    ctx.strokeStyle = side.color;
-    ctx.stroke();
-    ctx.beginPath();
-    ctx.arc(cx, cy, r - 1, 0, Math.PI * 2);
-    ctx.lineWidth = 2;
-    ctx.strokeStyle = 'rgba(255,255,255,0.18)';
-    ctx.stroke();
+  // tennis: the player's photo as a scanned print pasted on the poster
+  if (side.player) {
+    drawPrintCard(ctx, side.player, cx, cy, r * 2.05, cx < W / 2 ? -1 : 1, a.sans);
     return;
   }
   // the club's own logo when there is one: lifted off the page, with a faint light rim
