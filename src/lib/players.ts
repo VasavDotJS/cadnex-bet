@@ -17,7 +17,7 @@ export interface PlayerPhotoInfo {
   source?: string;
 }
 
-const KEY = 'cdnx-players';
+const KEY = 'cdnx-players-2';
 const MAX = 400;
 const FOUND_MS = 7 * 86_400_000;
 const NONE_MS = 86_400_000;
@@ -88,7 +88,7 @@ export function playerPhoto(name: string, id?: string): Promise<PlayerPhotoInfo 
   if (hit && Date.now() - hit.t < (hit.p ? FOUND_MS : NONE_MS)) return Promise.resolve(hit.p ? clean(hit.p) : null);
   const pending = inflight.get(k);
   if (pending) return pending;
-  const qs = new URLSearchParams({ name: name.trim() });
+  const qs = new URLSearchParams({ name: name.trim(), v: '2' });
   if (id && /^\d{1,10}$/.test(id)) qs.set('id', id);
   const p = slot(async () => {
     const r = await fetch(`/api/player?${qs}`, { credentials: 'omit' });
