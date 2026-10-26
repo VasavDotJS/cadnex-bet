@@ -138,10 +138,13 @@ select:focus-visible,
 .orb {
   position: absolute;
   border-radius: 9999px;
-  filter: blur(70px);
+  /* a soft radial falloff instead of filter: blur(): drawn once, then only moved by the compositor */
+  background: radial-gradient(closest-side, currentColor, transparent);
+  background: radial-gradient(closest-side, currentColor 0%, color-mix(in srgb, currentColor 55%, transparent) 45%, transparent 100%);
   opacity: 0.55;
   pointer-events: none;
   will-change: transform;
+  contain: strict;
 }
 
 @keyframes drift {
@@ -183,6 +186,19 @@ input[type='number']::-webkit-outer-spin-button {
 input[type='date']::-webkit-calendar-picker-indicator {
   filter: invert(0.6);
 }
+
+/* endless horizontal scroll (live wave, ticker): compositor-only */
+.marquee { animation: marquee 6s linear infinite; will-change: transform; }
+@keyframes marquee { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+
+/* slow spinning sheen (Wrapped banner) and the sweep over winning bets: compositor-only */
+.spin-slow { animation: spin-slow 8s linear infinite; will-change: transform; }
+@keyframes spin-slow { to { transform: rotate(360deg); } }
+.won-sweep { animation: won-sweep 4s ease-in-out infinite; will-change: transform; }
+@keyframes won-sweep { 0% { transform: translateX(-30%); } 40%, 100% { transform: translateX(130%); } }
+
+/* long lists: the browser skips layout and paint for rows far off screen */
+.match-row { content-visibility: auto; contain-intrinsic-size: auto 132px; }
 
 /* tennis player portraits: black-and-white photos */
 .print {
@@ -251,6 +267,9 @@ input[type='date']::-webkit-calendar-picker-indicator {
   .orb, .breathe, .skeleton { animation: none !important; }
   .av-anim *, .gold-ring::before, .gold-ring::after { animation: none !important; }
 }
+:root[data-motion='reduced'] .marquee,
+:root[data-motion='reduced'] .spin-slow,
+:root[data-motion='reduced'] .won-sweep,
 :root[data-motion='reduced'] .orb,
 :root[data-motion='reduced'] .breathe,
 :root[data-motion='reduced'] .skeleton,

@@ -6,7 +6,7 @@ import { Crest } from '../../components/Crest';
 import { gentle } from '../../components/motion';
 import { scoreOf } from '../../components/match';
 import { LiveDot, Pill, PillLink } from '../../components/ui';
-import { useLive } from '../../store/live';
+import { useEventsFor } from '../../store/live';
 import { useLiveIds } from '../../store/selectors';
 import { useSession } from '../../store/session';
 import { InstallButton } from '../install/Install';
@@ -14,13 +14,13 @@ import { DemoBadge, Logo } from '../shell/Shell';
 
 function Ticker() {
   const ids = useLiveIds();
-  const events = useLive((s) => s.events);
+  const events = useEventsFor(ids);
   const items = ids.map((id) => events[id]).filter(Boolean);
   if (!items.length) return <div className="h-14" />;
   const row = [...items, ...items];
   return (
     <div className="relative overflow-hidden py-2 [mask-image:linear-gradient(90deg,transparent,black_12%,black_88%,transparent)]" aria-label="Live matches">
-      <motion.div className="flex w-max gap-3" animate={{ x: ['0%', '-50%'] }} transition={{ duration: Math.max(30, items.length * 6), repeat: Infinity, ease: 'linear' }}>
+      <div className="marquee flex w-max gap-3" style={{ animationDuration: `${Math.max(30, items.length * 6)}s` }}>
         {row.map((ev, i) => {
           const [a, b] = scoreOf(ev);
           return (
@@ -34,7 +34,7 @@ function Ticker() {
             </div>
           );
         })}
-      </motion.div>
+      </div>
     </div>
   );
 }

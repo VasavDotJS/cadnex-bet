@@ -87,7 +87,7 @@ function AvatarPicker({ seed, name, onPick }: { seed: number; name: string; onPi
           <motion.button type="button" role="radio" aria-checked={seed === ADMIN_SEED} aria-label="You, in 3D (admin only)" title="You, in 3D" whileTap={press} onClick={() => onPick(ADMIN_SEED)}
             className={`flex aspect-square items-center justify-center rounded-full p-[3px] ${seed === ADMIN_SEED ? 'bg-lime' : 'bg-transparent'}`}>
             <span className="inline-flex h-full w-full overflow-hidden rounded-full [&>span]:!h-full [&>span]:!w-full [&_svg]:!h-full [&_svg]:!w-full">
-              <CharacterAvatar c={OWNER} size={56} />
+              <CharacterAvatar c={OWNER} size={56} still={seed !== ADMIN_SEED} />
             </span>
           </motion.button>
         )}
@@ -97,7 +97,7 @@ function AvatarPicker({ seed, name, onPick }: { seed: number; name: string; onPi
             <motion.button key={c.id} type="button" role="radio" aria-checked={on} aria-label={c.name} title={c.name} whileTap={press} onClick={() => onPick(characterSeed(i))}
               className={`flex aspect-square items-center justify-center rounded-full p-[3px] ${on ? 'bg-lime' : 'bg-transparent'}`}>
               <span className="inline-flex h-full w-full overflow-hidden rounded-full [&>span]:!h-full [&>span]:!w-full [&_svg]:!h-full [&_svg]:!w-full">
-                <CharacterAvatar c={c} size={56} phase={i * 0.53} />
+                <CharacterAvatar c={c} size={56} still={!on} phase={i * 0.53} />
               </span>
             </motion.button>
           );

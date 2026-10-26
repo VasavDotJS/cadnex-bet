@@ -1,4 +1,4 @@
-/** Ambient light: blurred orbs that drift slowly and react to winning, losing and live tension. */
+/** Ambient light: soft orbs that drift slowly and react to winning, losing and live tension. */
 import { AnimatePresence, motion } from 'framer-motion';
 import { useEffect, useState } from 'react';
 import { useUi } from '../store/ui';
@@ -17,12 +17,12 @@ export function Orbs({ palette = 'calm', intensity = 1, className = '' }: { pale
   const mood = useUi((s) => s.mood);
   const [a, b, c] = mood === 'win' ? ['var(--lime)', 'var(--lime)', PALETTES[palette][2]] : mood === 'loss' ? ['var(--down)', PALETTES[palette][1], PALETTES[palette][2]] : PALETTES[palette];
   const o = 0.5 * intensity;
-  const base = 'orb transition-[background-color,opacity] duration-[1200ms]';
+  const base = 'orb transition-[color,opacity] duration-[1200ms]';
   return (
     <div className={`pointer-events-none absolute inset-0 overflow-hidden ${className}`} aria-hidden>
-      <div className={base} style={{ width: '62%', height: '70%', left: '-12%', top: '-28%', animation: 'drift 18s ease-in-out infinite', backgroundColor: `rgb(${a})`, opacity: o }} />
-      <div className={base} style={{ width: '55%', height: '64%', right: '-14%', top: '-8%', animation: 'drift 23s ease-in-out infinite reverse', backgroundColor: `rgb(${b})`, opacity: o * 0.8 }} />
-      <div className={base} style={{ width: '40%', height: '46%', left: '28%', bottom: '-30%', animation: 'drift 27s ease-in-out infinite', backgroundColor: `rgb(${c})`, opacity: o * 0.55 }} />
+      <div className={base} style={{ width: '62%', height: '70%', left: '-12%', top: '-28%', animation: 'drift 18s ease-in-out infinite', color: `rgb(${a})`, opacity: o }} />
+      <div className={base} style={{ width: '55%', height: '64%', right: '-14%', top: '-8%', animation: 'drift 23s ease-in-out infinite reverse', color: `rgb(${b})`, opacity: o * 0.8 }} />
+      <div className={base} style={{ width: '40%', height: '46%', left: '28%', bottom: '-30%', animation: 'drift 27s ease-in-out infinite', color: `rgb(${c})`, opacity: o * 0.55 }} />
     </div>
   );
 }

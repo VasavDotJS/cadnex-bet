@@ -7,7 +7,7 @@ import { Crest } from '../components/Crest';
 import { LiveDot } from '../components/ui';
 import { press, spring } from '../components/motion';
 import { useOddsFmt, toSlipSel } from '../components/OddsButton';
-import { findSelection, useLive } from '../store/live';
+import { findSelection, useEventsFor, useLive } from '../store/live';
 import { SlipSel, useSlip } from '../store/slip';
 import { useUi } from '../store/ui';
 import { parseShare } from './link';
@@ -16,9 +16,9 @@ export function SharedSlip() {
   const { user, legs } = useParams();
   const nav = useNavigate();
   const fmt = useOddsFmt();
-  const events = useLive((s) => s.events);
   const ready = useLive((s) => s.ready);
   const shared = useMemo(() => parseShare(user, legs), [user, legs]);
+  const events = useEventsFor((shared?.picks ?? []).map((p) => p.eventId));
 
   const rows = useMemo(() => (shared?.picks ?? []).map((p) => {
     const ev = events[p.eventId];

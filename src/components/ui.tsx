@@ -1,7 +1,7 @@
 /** Small shared building blocks: pills, chips, icon wells, headings, tabs, avatars. */
 import { motion } from 'framer-motion';
 import { ADMIN_SEED, CharacterAvatar, characterFor, GoldRing, ringInner } from './avatars';
-import { ComponentProps, ReactNode, useEffect, useState } from 'react';
+import { ComponentProps, ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import { press, spring } from './motion';
 
@@ -104,7 +104,8 @@ export function Avatar({ seed, name, size = 40, still, ring, bare }: { seed: num
     return <GoldRing size={size}><Avatar seed={seed} name={name} size={ringInner(size)} still={still} bare /></GoldRing>;
   }
   const character = characterFor(seed);
-  if (character) return <CharacterAvatar c={character} size={size} still={still ?? size < 24} phase={(seed * 0.37) % 4} />;
+  // animated SVGs repaint every frame, so only the big ones move (profile, Account header)
+  if (character) return <CharacterAvatar c={character} size={size} still={still ?? size < 56} phase={(seed * 0.37) % 4} />;
   const h1 = seed % 360;
   const h2 = (seed * 7 + 140) % 360;
   return (
@@ -147,14 +148,8 @@ export function Tabs<T extends string>({ tabs, value, onChange, id, className = 
   );
 }
 
-export function useNow(ms = 1000): number {
-  const [now, setNow] = useState(Date.now());
-  useEffect(() => {
-    const t = setInterval(() => setNow(Date.now()), ms);
-    return () => clearInterval(t);
-  }, [ms]);
-  return now;
-}
+/** The current time at the precision shown (one shared clock for the whole app). */
+export { useNow } from '../store/clock';
 
 export function countdown(ms: number): string {
   if (ms <= 0) return 'Starting';

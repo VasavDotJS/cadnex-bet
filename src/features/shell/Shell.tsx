@@ -1,7 +1,7 @@
 /** App shell: desktop header + sidebar + slip panel; mobile floating nav + slip sheet. */
 import { LayoutGroup, motion } from 'framer-motion';
 import { Bell, ChevronDown, House, Radio, Search, Ticket, Trophy, UserRound, Wallet } from 'lucide-react';
-import { ReactNode, useMemo, useState } from 'react';
+import { ReactNode, useEffect, useMemo, useState } from 'react';
 import { Link, NavLink, useLocation } from 'react-router-dom';
 import { leagueOrder, SPORTS } from '../../data/leagues';
 import { FeedBadge } from '../../components/FeedBadge';
@@ -12,7 +12,7 @@ import { press, spring } from '../../components/motion';
 import { SportGlyph } from '../../components/SportGlyph';
 import { ADMIN_SEED } from '../../components/avatars';
 import { Avatar } from '../../components/ui';
-import { useLive } from '../../store/live';
+import { eventList, useLive, useLiveCount } from '../../store/live';
 import { useSession } from '../../store/session';
 import { useUi } from '../../store/ui';
 import { SlipPanel } from '../slip/BetSlip';
@@ -50,7 +50,7 @@ export function BottomNav() {
   const user = useSession((s) => s.user);
   const isAdmin = useSession((s) => s.isAdmin);
   const accountOpen = useUi((s) => s.account);
-  const liveCount = useLive((s) => Object.values(s.events).filter((e) => e.status === 'LIVE').length);
+  const liveCount = useLiveCount();
   const openBets = useSession((s) => s.bets.filter((b) => b.status === 'OPEN' || b.status === 'PARTIALLY_CASHED_OUT').length);
   const active = NAV.find((n) => (n.end ? loc.pathname === n.to : loc.pathname.startsWith(n.to)))?.to ?? (loc.pathname.startsWith('/event') ? '/live' : '');
   return (
@@ -144,13 +144,27 @@ function DesktopHeader() {
   );
 }
 
+/** True while the viewport matches the query (desktop-only panels aren't mounted on phones). */
+function useMedia(query: string): boolean {
+  const get = () => typeof window !== 'undefined' && window.matchMedia(query).matches;
+  const [on, setOn] = useState(get);
+  useEffect(() => {
+    const mq = window.matchMedia(query);
+    const f = () => setOn(mq.matches);
+    f();
+    mq.addEventListener('change', f);
+    return () => mq.removeEventListener('change', f);
+  }, [query]);
+  return on;
+}
+
 function Sidebar() {
-  const events = useLive((s) => s.events);
   const [open, setOpen] = useState<Record<string, boolean>>({ football: true });
-  // competitions that actually have matches this week, in catalogue order
-  const leaguesBySport = useMemo(() => {
+  // competitions that actually have matches this week, in catalogue order; the key only
+  // changes when a competition appears or its counts move, not on every price tick
+  const key = useLive((s) => {
     const m = new Map<string, { id: string; name: string; sport: string; live: number; total: number }>();
-    for (const e of Object.values(events)) {
+    for (const e of eventList(s.events)) {
       if (e.status === 'FINISHED') continue;
       const k = e.leagueId;
       const cur = m.get(k) ?? { id: k, name: e.sport === 'tennis' ? (e.leagueId === 'atp' ? 'ATP Tour' : 'WTA Tour') : e.leagueName, sport: e.sport, live: 0, total: 0 };
@@ -158,8 +172,9 @@ function Sidebar() {
       if (e.status === 'LIVE') cur.live++;
       m.set(k, cur);
     }
-    return [...m.values()].sort((a, b) => leagueOrder(a.id) - leagueOrder(b.id) || a.name.localeCompare(b.name));
-  }, [events]);
+    return JSON.stringify([...m.values()]);
+  });
+  const leaguesBySport = useMemo(() => (JSON.parse(key) as { id: string; name: string; sport: string; live: number; total: number }[]).sort((a, b) => leagueOrder(a.id) - leagueOrder(b.id) || a.name.localeCompare(b.name)), [key]);
   const favs = useSession((s) => s.settings?.favourites) ?? NO_FAVS;
   return (
     <aside className="sticky top-[84px] hidden max-h-[calc(100dvh-100px)] w-[240px] shrink-0 overflow-y-auto pb-6 xl:block" aria-label="Sports and leagues">
@@ -195,7 +210,7 @@ function Sidebar() {
           <p className="px-3 pb-2 pt-4 text-[12px] text-mute">Favourites</p>
           {favs.slice(0, 8).map((f) => {
             const [sport, id] = f.split(':');
-            const ev = Object.values(events).find((e) => e.sport === sport && (e.home.id === id || e.away.id === id) && e.status !== 'FINISHED');
+            const ev = eventList(useLive.getState().events).find((e) => e.sport === sport && (e.home.id === id || e.away.id === id) && e.status !== 'FINISHED');
             const p = ev ? (ev.home.id === id ? ev.home : ev.away) : null;
             return p ? (
               <Link key={f} to={`/event/${ev!.id}`} className="flex h-10 items-center gap-2.5 rounded-full px-3 text-[13px] text-mute hover:bg-surface2 hover:text-ink">
@@ -210,14 +225,17 @@ function Sidebar() {
 }
 
 export function Shell({ children }: { children: ReactNode }) {
+  // desktop-only panels aren't mounted on phones at all
+  const desktop = useMedia('(min-width: 1024px)');
+  const wide = useMedia('(min-width: 1280px)');
   return (
     <div className="min-h-dvh">
       <DesktopHeader />
       <div className="mx-auto flex w-full max-w-[1520px] gap-6 lg:px-6 lg:pt-3">
-        <Sidebar />
+        {wide && <Sidebar />}
         <main className="min-w-0 flex-1 pb-[140px] lg:pb-16">{children}</main>
         <div id="slip-anchor" className="hidden w-[360px] shrink-0 lg:block">
-          <SlipPanel />
+          {desktop && <SlipPanel />}
         </div>
       </div>
       <footer className="mx-auto max-w-[1520px] px-6 pb-[160px] pt-6 text-[12px] leading-relaxed text-faint lg:pb-10">

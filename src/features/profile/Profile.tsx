@@ -3,7 +3,7 @@ import { motion } from 'framer-motion';
 import { ChevronRight, Download, LogOut, Pencil, ShieldCheck, Sparkles, Trash2 } from 'lucide-react';
 import { useCanInstall, useInstall } from '../../pwa/install';
 import { adminApi } from '../../admin/api';
-import { useOpenWrapped } from '../../wrapped/Wrapped';
+import { useOpenWrapped } from '../../wrapped/store';
 import { useSync } from '../../cloud/sync';
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
