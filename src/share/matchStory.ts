@@ -10,12 +10,22 @@
 import qrcode from 'qrcode-generator';
 import { GLYPHS } from '../components/glyphs';
 import type { EventPublic } from '../engine/types';
+import { isPlaceholderName } from '../lib/placeholder';
 import { drawContained, logoImage } from './logos';
+import { CREST_CELLS, drawPortrait, portraitArt } from './portraits';
 import { Assets, clamp, H, outBack, outCubic, rand, rr, span, tracked, W } from './story';
 
 export type MatchPhase = 'PRE' | 'LIVE' | 'FT';
 
-export interface MatchSide { name: string; short: string; color: string; ink: string; logo?: string }
+export interface MatchSide {
+  name: string;
+  short: string;
+  color: string;
+  ink: string;
+  logo?: string;
+  /** tennis: the player's name, for their halftone portrait */
+  player?: string;
+}
 export interface MatchStory {
   phase: MatchPhase;
   shield: boolean;
@@ -49,6 +59,7 @@ function lum(h: string): number {
 const inkFor = (bg: string) => (lum(bg) > 0.45 ? '#0B0B0D' : '#FFFFFF');
 
 function monogram(name: string, short: string, sport: string): string {
+  if (isPlaceholderName(name)) return '?';
   if (sport === 'tennis') {
     const parts = name.split(' ');
     return (parts[0][0] + (parts[parts.length - 1][0] ?? '')).toUpperCase();
@@ -91,8 +102,8 @@ export function matchStoryFrom(ev: EventPublic, fmtOdds: (o: number) => string, 
     date: d.toLocaleDateString([], { weekday: 'short', day: 'numeric', month: 'short' }),
     time: d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
     countdown: phase === 'PRE' ? countdown(ev.startTime - now) : null,
-    home: { name: ev.home.name, short: monogram(ev.home.name, ev.home.short, ev.sport), color: hc, ink: inkFor(hc), logo: ev.home.logo },
-    away: { name: ev.away.name, short: monogram(ev.away.name, ev.away.short, ev.sport), color: ac, ink: inkFor(ac), logo: ev.away.logo },
+    home: { name: ev.home.name, short: monogram(ev.home.name, ev.home.short, ev.sport), color: hc, ink: inkFor(hc), logo: ev.home.logo, player: ev.sport === 'tennis' ? ev.home.name : undefined },
+    away: { name: ev.away.name, short: monogram(ev.away.name, ev.away.short, ev.sport), color: ac, ink: inkFor(ac), logo: ev.away.logo, player: ev.sport === 'tennis' ? ev.away.name : undefined },
     score,
     clock: phase === 'FT' ? 'FULL TIME' : ev.clock || ev.period || 'LIVE',
     scorers,
@@ -139,6 +150,30 @@ function crest(ctx: CanvasRenderingContext2D, a: Assets, side: MatchSide, cx: nu
     ctx.fillStyle = g;
     ctx.fillRect(cx - r * 2.4, cy - r * 2.4, r * 4.8, r * 4.8);
     ctx.restore();
+  }
+  // tennis: the player's halftone portrait on a dark disc, ringed in their colour
+  if (side.player && portraitArt(side.player, CREST_CELLS)) {
+    ctx.save();
+    ctx.shadowColor = 'rgba(0,0,0,0.6)';
+    ctx.shadowBlur = 50;
+    ctx.shadowOffsetY = 24;
+    ctx.beginPath();
+    ctx.arc(cx, cy, r, 0, Math.PI * 2);
+    ctx.fillStyle = '#141418';
+    ctx.fill();
+    ctx.restore();
+    drawPortrait(ctx, side.player, CREST_CELLS, cx, cy, r);
+    ctx.beginPath();
+    ctx.arc(cx, cy, r + 5, 0, Math.PI * 2);
+    ctx.lineWidth = 6;
+    ctx.strokeStyle = side.color;
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.arc(cx, cy, r - 1, 0, Math.PI * 2);
+    ctx.lineWidth = 2;
+    ctx.strokeStyle = 'rgba(255,255,255,0.18)';
+    ctx.stroke();
+    return;
   }
   // the club's own logo when there is one: lifted off the page, with a faint light rim
   const img = logoImage(side.logo);

@@ -3,6 +3,7 @@ import { LEAGUES } from '../data/leagues';
 import { normalizeScoreboard } from '../feed/espn';
 import { LiveEngine } from '../live/engine';
 import { goal, nbaEvent, soccerEvent } from '../live/fixtures';
+import { isPlaceholderName } from '../lib/placeholder';
 import { prepare, quote, result } from './market';
 
 const EPL = LEAGUES.find((l) => l.id === 'eng.1')!;
@@ -57,6 +58,17 @@ describe('server pricing matches the live engine', () => {
     expect(result(p, 'btts', 'y')).toBe('WON');
     expect(result(p, 'ou:2.5', 'o')).toBe('WON');
     expect(result(p, 'no-such-market', 'x')).toBe('VOID');
+  });
+
+  it('takes no bets while a side is still "TBD"', () => {
+    const ev = normalizeScoreboard(EPL, { events: [soccerEvent({ id: '705', start: NOW + 3_600_000, state: 'pre', home: ARS, away: ['0', 'TBD', 'TBD', '333333'], odds: ODDS })] })[0];
+    expect(quote(prepare(ev, NOW)!, '1x2', '1').available).toBe(false);
+    const engine = new LiveEngine();
+    engine.lastOk = NOW;
+    engine.apply(ev, NOW);
+    expect(engine.items.get(ev.id)!.markets).toHaveLength(0);
+    for (const n of ['TBD', 'tba', 'Qualifier', 'Winner of R16 match', '', '  ']) expect(isPlaceholderName(n)).toBe(true);
+    for (const n of ['Paula Badosa', 'Tbilisi FC', 'Byers', 'Unknownia']) expect(isPlaceholderName(n)).toBe(false);
   });
 
   it('leaves undecided markets open while a match is live', () => {

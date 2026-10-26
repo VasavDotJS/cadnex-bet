@@ -1,11 +1,12 @@
 /**
  * Team crests: the club's official logo when the feed has one, otherwise a monogram in the
- * team's colours (tennis players, or if the logo can't load).
+ * team's colours (or if the logo can't load). Tennis players get a halftone photo portrait.
  */
 import { useState } from 'react';
 import type { SportId } from '../data/types';
 import { logoSrc } from '../lib/logo';
 import type { Participant } from '../engine/types';
+import { PlayerPortrait } from './PlayerPortrait';
 
 function lum(hex: string): number {
   const h = hex.replace('#', '');
@@ -32,6 +33,9 @@ const broken = new Set<string>();
 
 export function Crest({ p, sport, size = 40, className = '' }: { p: Participant; sport: SportId; size?: number; className?: string }) {
   const [failed, setFailed] = useState(false);
+  if (sport === 'tennis') {
+    return <PlayerPortrait p={p} size={size} className={className} fallback={<Monogram p={p} sport={sport} size={size} className="" />} />;
+  }
   if (p.logo && !failed && !broken.has(p.logo)) {
     const logo = p.logo;
     return (
