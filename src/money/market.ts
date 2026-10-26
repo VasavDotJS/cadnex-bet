@@ -5,6 +5,7 @@
 import { fairOddsFromTally } from '../engine/sport';
 import type { LegResult } from '../lib/money';
 import { roundOdds } from '../lib/odds';
+import { undecidedSides } from '../lib/placeholder';
 import type { FeedEvent } from '../feed/types';
 import { LiveEngine, MODELS } from '../live/engine';
 import type { Memory, Model } from '../live/model';
@@ -42,6 +43,7 @@ const NONE: Quote = { odds: 0, fair: 0, available: false };
 export function quote(p: Prepared, key: string, code: string): Quote {
   const { ev, mem, model, now } = p;
   if (ev.status !== 'SCHEDULED' && ev.status !== 'LIVE') return NONE;
+  if (undecidedSides(ev)) return NONE; // a side is still "TBD"
   if (ev.status === 'SCHEDULED' && now > ev.startTime - 30_000) return NONE; // betting closes at kick-off
   const spec = model.spec(key, ev);
   if (!spec || !spec.sels.some((s) => s.code === code)) return NONE;

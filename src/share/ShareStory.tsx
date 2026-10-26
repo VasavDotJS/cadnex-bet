@@ -19,6 +19,7 @@ import { useUi } from '../store/ui';
 import { shareUrl } from './link';
 import { Assets, drawStory, DURATION, H, loadAssets, Story, StoryOptions, storyFromBet, storyFromSlip, W } from './story';
 import { preloadLogos } from './logos';
+import { preloadPortraits } from './portraits';
 import { drawMatchStory, matchStoryFrom } from './matchStory';
 import { makeStoryFile, StoryFile } from './video';
 
@@ -34,6 +35,8 @@ interface Card {
   caption: string;
   footnote: string;
   logos: (string | undefined)[];
+  /** tennis players whose portraits the card draws */
+  players?: (string | undefined)[];
   draw(ctx: CanvasRenderingContext2D, t: number, a: Assets, o: StoryOptions): void;
 }
 
@@ -50,6 +53,7 @@ function betCard(story: Story): Card {
     amounts: !!story.stake,
     caption: `Copy my bet on CADNEX 👉 ${story.link}`,
     logos: story.legs.flatMap((l) => [l.home.logo, l.away.logo]),
+    players: story.legs.flatMap((l) => [l.home.player, l.away.player]),
     footnote: 'Friends who scan the code or open the link get your picks in their own slip, at the current prices.',
     draw: (ctx, t, a, o) => drawStory(ctx, t, story, a, o),
   };
@@ -101,6 +105,7 @@ function useCard(source: Source | null): Card | null {
         caption: m.phase === 'LIVE' ? `${title} is live, ${m.score?.join('–')} 🔴 Follow it on CADNEX 👉 ${url}` : m.phase === 'FT' ? `${title} finished ${m.score?.join('–')} ⚽ on CADNEX 👉 ${url}` : `${title} · ${m.date} ${m.time} 🔥 Get your picks in on CADNEX 👉 ${url}`,
         footnote: 'The code and link open this match on CADNEX, with live score and prices.',
         logos: [m.home.logo, m.away.logo],
+        players: [m.home.player, m.away.player],
         draw: (ctx, t, a) => drawMatchStory(ctx, t, m, a),
       };
     }
@@ -209,7 +214,7 @@ export function ShareStorySheet() {
     const snapshot = card;
     const o = opts;
     const t = setTimeout(async () => {
-      await preloadLogos(snapshot.logos);
+      await Promise.all([preloadLogos(snapshot.logos), preloadPortraits(snapshot.players ?? [])]);
       if (gen.current !== my) return;
       void makeStoryFile((ctx, time) => snapshot.draw(ctx, time, assets, o), (p) => { if (gen.current === my) setProgress(p); }, snapshot.name)
         .then((f) => { if (gen.current === my) setFile(f); });

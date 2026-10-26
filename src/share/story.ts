@@ -14,6 +14,7 @@ import type { SlipSel } from '../store/slip';
 import type { SharedPick } from './link';
 import { logoFor } from '../lib/logo';
 import { drawContained, logoImage } from './logos';
+import { DISC_CELLS, drawPortrait } from './portraits';
 
 export const W = 1080;
 export const H = 1920;
@@ -27,8 +28,8 @@ export interface StoryLeg {
   odds: string;
   result: 'PENDING' | 'WON' | 'LOST' | 'VOID';
   live?: { score: string; clock: string };
-  home: { short: string; color: string; logo?: string };
-  away: { short: string; color: string; logo?: string };
+  home: { short: string; color: string; logo?: string; player?: string };
+  away: { short: string; color: string; logo?: string; player?: string };
 }
 
 export interface Story {
@@ -67,18 +68,19 @@ function hue(s: string): string {
 const shortOf = (name: string) => name.replace(/[^A-Za-z0-9 ]/g, '').split(' ').filter(Boolean).map((w) => w[0]).join('').slice(0, 3).toUpperCase() || name.slice(0, 3).toUpperCase();
 
 function legFrom(
-  l: { eventId: string; label: string; marketName: string; home: string; away: string; odds: number; result?: string },
+  l: { eventId: string; label: string; marketName: string; home: string; away: string; odds: number; result?: string; sport?: string },
   ev: EventPublic | undefined,
   fmtOdds: (o: number) => string,
 ): StoryLeg {
+  const tennis = (ev?.sport ?? l.sport) === 'tennis';
   const r = l.result === 'WON' || l.result === 'HALF_WON' ? 'WON' : l.result === 'LOST' || l.result === 'HALF_LOST' ? 'LOST' : l.result === 'VOID' ? 'VOID' : 'PENDING';
   const leg: StoryLeg = {
     label: l.label,
     sub: `${l.marketName} · ${l.home} v ${l.away}`,
     odds: fmtOdds(l.odds),
     result: r,
-    home: { short: ev?.home.short?.slice(0, 3).toUpperCase() || shortOf(l.home), color: hex(ev?.home.colors?.[0], hue(l.home)), logo: ev?.home.logo ?? logoFor(l.home) },
-    away: { short: ev?.away.short?.slice(0, 3).toUpperCase() || shortOf(l.away), color: hex(ev?.away.colors?.[0], hue(l.away)), logo: ev?.away.logo ?? logoFor(l.away) },
+    home: { short: ev?.home.short?.slice(0, 3).toUpperCase() || shortOf(l.home), color: hex(ev?.home.colors?.[0], hue(l.home)), logo: ev?.home.logo ?? logoFor(l.home), player: tennis ? l.home : undefined },
+    away: { short: ev?.away.short?.slice(0, 3).toUpperCase() || shortOf(l.away), color: hex(ev?.away.colors?.[0], hue(l.away)), logo: ev?.away.logo ?? logoFor(l.away), player: tennis ? l.away : undefined },
   };
   if (r === 'PENDING' && ev?.status === 'LIVE') {
     const s = ev.scoreText ?? [String(ev.score[0]), String(ev.score[1])];
@@ -543,6 +545,7 @@ export function drawStory(ctx: CanvasRenderingContext2D, t: number, s: Story, a:
       ctx.arc(x, cy, R + 4, 0, Math.PI * 2);
       ctx.fillStyle = '#16161B';
       ctx.fill();
+      if (drawPortrait(ctx, team.player, DISC_CELLS, x, cy, R)) return;
       const img = logoImage(team.logo);
       if (img) {
         ctx.beginPath();

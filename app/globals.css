@@ -184,14 +184,48 @@ input[type='date']::-webkit-calendar-picker-indicator {
   filter: invert(0.6);
 }
 
+/* tennis player portraits: a scanner line passes over the dot print every few seconds */
+.portrait { border-radius: 9999px; isolation: isolate; box-shadow: 0 0 0 1px rgb(var(--line) / 0.08); }
+.portrait-scan {
+  position: absolute;
+  inset: 0;
+  border-radius: 9999px;
+  overflow: hidden;
+  pointer-events: none;
+  mix-blend-mode: screen;
+}
+.portrait-scan::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: -40%;
+  height: 40%;
+  background: linear-gradient(to bottom, transparent 0%, rgb(var(--lime) / 0.06) 60%, rgb(var(--lime) / 0.5) 96%, transparent 100%);
+  animation: portrait-scan 9s cubic-bezier(0.45, 0, 0.3, 1) infinite;
+  animation-delay: inherit;
+}
+@keyframes portrait-scan {
+  0% { transform: translateY(0); opacity: 0; }
+  2% { opacity: 1; }
+  20% { transform: translateY(350%); opacity: 1; }
+  22%, 100% { transform: translateY(350%); opacity: 0; }
+}
+.portrait-tbd {
+  background: radial-gradient(circle at 50% 50%, rgb(var(--surface-3)) 0 1px, transparent 1.6px) 0 0 / 5px 5px, rgb(var(--surface-2));
+  box-shadow: 0 0 0 1px rgb(var(--line) / 0.08);
+}
+
 @media (prefers-reduced-motion: reduce) {
   .orb, .breathe, .skeleton { animation: none !important; }
+  .portrait-scan::before { animation: none !important; opacity: 0; }
 }
 :root[data-motion='reduced'] .orb,
 :root[data-motion='reduced'] .breathe,
 :root[data-motion='reduced'] .skeleton {
   animation: none !important;
 }
+:root[data-motion='reduced'] .portrait-scan::before { animation: none !important; opacity: 0; }
 
 /* frosted wallet card inner mesh */
 .wallet-mesh {

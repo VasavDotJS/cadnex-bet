@@ -8,6 +8,8 @@ import { FeedBadge } from '../../components/FeedBadge';
 import type { EventPublic, Incident } from '../../engine/types';
 import { Orbs } from '../../components/Ambient';
 import { Crest } from '../../components/Crest';
+import { PhotoCredits } from '../../components/PlayerPortrait';
+import { undecidedSides } from '../../lib/placeholder';
 import { DotMatrix } from '../../components/DotMatrix';
 import { LiveWave, MomentumBars, MomentumDial, StatBars, StatTiles } from '../../components/instruments';
 import { EventStatus, MarketBlock, scoreOf } from '../../components/match';
@@ -55,11 +57,12 @@ function Scoreboard({ ev }: { ev: EventPublic }) {
   const numeric = /^\d+$/.test(sh) && /^\d+$/.test(sa);
   const live = ev.status === 'LIVE';
   const clockDigits = /^[\d'+:–-]+$/.test(ev.clock.replace(/\s/g, ''));
+  const crest = ev.sport === 'tennis' ? 80 : 64;
   return (
     <div className="flex flex-col items-center">
       <div className="grid w-full grid-cols-[1fr_auto_1fr] items-center gap-3">
         <div className="flex flex-col items-center gap-2">
-          <Crest p={ev.home} sport={ev.sport} size={64} />
+          <Crest p={ev.home} sport={ev.sport} size={crest} />
           {ev.serving === 0 && <span className="h-1.5 w-1.5 rounded-full bg-lime" aria-label="Serving or batting" />}
         </div>
         <div className="flex flex-col items-center">
@@ -82,7 +85,7 @@ function Scoreboard({ ev }: { ev: EventPublic }) {
           )}
         </div>
         <div className="flex flex-col items-center gap-2">
-          <Crest p={ev.away} sport={ev.sport} size={64} />
+          <Crest p={ev.away} sport={ev.sport} size={crest} />
           {ev.serving === 1 && <span className="h-1.5 w-1.5 rounded-full bg-lime" aria-label="Serving or batting" />}
         </div>
       </div>
@@ -116,6 +119,7 @@ function Scoreboard({ ev }: { ev: EventPublic }) {
           </table>
         </div>
       )}
+      {ev.sport === 'tennis' && <PhotoCredits players={[ev.home, ev.away]} className="mt-3 max-w-[460px]" />}
     </div>
   );
 }
@@ -240,7 +244,7 @@ export function EventPage() {
                 )}
                 {ev.markets.length === 0 ? (
                   ev.status === 'SCHEDULED' || ev.status === 'LIVE' ? (
-                    <Empty title="No markets for this match" body={ev.sport === 'cricket' ? 'CADNEX prices T20 and one-day matches. Scores for this format are shown without betting.' : 'This match is followed for scores only.'} />
+                    undecidedSides(ev) ? <Empty title="Markets open once both sides are known" body="This draw slot is still to be decided. Prices appear as soon as the player is confirmed." /> : <Empty title="No markets for this match" body={ev.sport === 'cricket' ? 'CADNEX prices T20 and one-day matches. Scores for this format are shown without betting.' : 'This match is followed for scores only.'} />
                   ) : <Empty title="No markets" body={ev.result?.void ? `This match was ${ev.period.toLowerCase()}.` : 'This match has finished.'} />
                 ) : shown.length === 0 ? (
                   <Empty title="No markets open" body={ev.status === 'FINISHED' ? 'This match has finished and all markets are settled.' : 'Markets reopen after the next stoppage.'} />

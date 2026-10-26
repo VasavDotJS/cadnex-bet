@@ -9,6 +9,7 @@ import type { EventPublic, Incident, IncidentKind, Market, ScoreLine, Side, Stat
 import { parseMinute } from '../feed/espn';
 import type { FeedEvent } from '../feed/types';
 import { roundOdds } from '../lib/odds';
+import { undecidedSides } from '../lib/placeholder';
 import { basketballModel, remainingFraction } from './basketball';
 import { cricketModel } from './cricket';
 import { footballModel, minuteOf } from './football';
@@ -252,7 +253,8 @@ export class LiveEngine {
   private sync(it: LiveItem, model: Model, now: number): boolean {
     const ev = it.feed;
     let changed = false;
-    const keys = new Set(model.keys(ev, it.mem));
+    // no prices until both players are known ("TBD" in a draw)
+    const keys = new Set(undecidedSides(ev) ? [] : model.keys(ev, it.mem));
     const have = new Set(it.markets.map((m) => m.key));
     for (const key of keys) {
       if (have.has(key)) continue;
