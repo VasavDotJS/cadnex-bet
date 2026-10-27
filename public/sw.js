@@ -5,7 +5,7 @@
  * - Live data (/api/*) is never cached here: scores and odds always come from the network.
  * Bump VERSION to drop old caches.
  */
-const VERSION = 'v4';
+const VERSION = 'v5';
 const SHELL = `cdnx-shell-${VERSION}`;
 const ASSETS = `cdnx-assets-${VERSION}`;
 const PRECACHE = ['/', '/manifest.webmanifest', '/icons/icon-192.png', '/icons/icon-512.png', '/apple-touch-icon.png', '/brand/cadnex-lockup-white.svg'];
@@ -74,12 +74,14 @@ async function page(event) {
       new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), PAGE_TIMEOUT)),
     ]);
     if (res.ok) {
+      // each page under its own address (the home URL is also the app's shell)
       const copy = res.clone();
-      event.waitUntil(caches.open(SHELL).then((c) => c.put('/', copy)));
+      const key = new URL(event.request.url).pathname;
+      event.waitUntil(caches.open(SHELL).then((c) => c.put(key, copy)));
     }
     return res;
   } catch {
-    const cached = await caches.match('/');
+    const cached = (await caches.match(new URL(event.request.url).pathname)) || (await caches.match('/'));
     return cached || new Response('<h1>You are offline</h1><p>Reconnect and open CADNEX again.</p>', { status: 503, headers: { 'content-type': 'text/html; charset=utf-8' } });
   }
 }

@@ -411,6 +411,8 @@ export function Splash() {
     const canvas = canvasRef.current;
     const box = boxRef.current;
     if (!canvas || !box) return;
+    // on the public landing page the app (and so the launch screen) isn't opening
+    if (!document.documentElement.hasAttribute('data-app')) return;
     const q = new URLSearchParams(window.location.search).get('splash');
     const freeze = q !== null && q !== '' && !Number.isNaN(Number(q)) ? Number(q) : null;
     const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
