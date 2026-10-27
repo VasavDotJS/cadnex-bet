@@ -6,7 +6,7 @@ export default function manifest(): MetadataRoute.Manifest {
     id: '/',
     name: 'CADNEX',
     short_name: 'CADNEX',
-    description: 'Bet on real matches with virtual money. Live scores and live odds for football, NBA, tennis and cricket.',
+    description: 'Free demo sports betting on real matches with virtual money. Live scores and live odds for football, NBA, tennis and cricket.',
     start_url: '/',
     scope: '/',
     display: 'standalone',

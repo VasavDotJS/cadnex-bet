@@ -4,6 +4,7 @@ import { GeistSans } from 'geist/font/sans';
 import { headers } from 'next/headers';
 import type { ReactNode } from 'react';
 import './globals.css';
+import { KEYWORDS, SITE_DESCRIPTION, SITE_NAME, SITE_TITLE, SITE_URL } from '../src/seo/site';
 
 /** iPhone and iPad launch screens (iOS needs one image per screen size). */
 const SPLASH = [
@@ -31,9 +32,30 @@ const SPLASH = [
 ];
 
 export const metadata: Metadata = {
-  title: 'CADNEX',
-  applicationName: 'CADNEX',
-  description: 'Bet on real matches with virtual money. Live scores and live odds for football, NBA, tennis and cricket.',
+  metadataBase: new URL(SITE_URL),
+  title: { default: SITE_TITLE, template: `%s · ${SITE_NAME}` },
+  description: SITE_DESCRIPTION,
+  applicationName: SITE_NAME,
+  keywords: KEYWORDS,
+  category: 'sports',
+  creator: SITE_NAME,
+  publisher: SITE_NAME,
+  alternates: { canonical: '/' },
+  openGraph: {
+    type: 'website',
+    siteName: SITE_NAME,
+    title: SITE_TITLE,
+    description: SITE_DESCRIPTION,
+    url: '/',
+    locale: 'en_US',
+  },
+  twitter: { card: 'summary_large_image', title: SITE_TITLE, description: SITE_DESCRIPTION },
+  robots: { index: true, follow: true, googleBot: { index: true, follow: true, 'max-image-preview': 'large', 'max-snippet': -1, 'max-video-preview': -1 } },
+  // set NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION / NEXT_PUBLIC_BING_SITE_VERIFICATION to verify ownership in Search Console / Bing Webmaster Tools
+  verification: {
+    google: process.env.NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION || undefined,
+    other: process.env.NEXT_PUBLIC_BING_SITE_VERIFICATION ? { 'msvalidate.01': process.env.NEXT_PUBLIC_BING_SITE_VERIFICATION } : undefined,
+  },
   appleWebApp: { capable: true, title: 'CADNEX', statusBarStyle: 'black-translucent', startupImage: SPLASH },
   formatDetection: { telephone: false },
   other: { 'mobile-web-app-capable': 'yes' },
@@ -50,6 +72,12 @@ export const viewport: Viewport = {
  * Browsers offer their install prompt once, early, often before the app has loaded.
  * Keep it so the app's own "Install" buttons can show it later.
  */
+/**
+ * On the home URL, open the app before the first paint (instead of the public landing page)
+ * for a link into the app (/#/…), a saved login, or the installed app. See src/seo/AppMount.
+ */
+const APP_OR_LANDING = `(function(){try{var d=document.documentElement,h=location.hash;var s=function(k){try{return localStorage.getItem(k)||sessionStorage.getItem(k)}catch(e){return null}};if(location.pathname==='/'&&(h.length>2||s('cdnx-auth')||(window.matchMedia&&matchMedia('(display-mode: standalone)').matches)||navigator.standalone))d.setAttribute('data-app','1')}catch(e){}})();`;
+
 const KEEP_INSTALL_PROMPT = `window.__cdnxBip=null;addEventListener('beforeinstallprompt',function(e){e.preventDefault();window.__cdnxBip=e;dispatchEvent(new Event('cdnx-bip'))});addEventListener('appinstalled',function(){window.__cdnxBip=null;window.__cdnxInstalled=true;dispatchEvent(new Event('cdnx-installed'))});`;
 
 export default async function RootLayout({ children }: { children: ReactNode }) {
@@ -58,6 +86,7 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
   return (
     <html lang="en" data-theme="dark" className={`${GeistSans.variable} ${GeistMono.variable}`} suppressHydrationWarning>
       <head>
+        <script nonce={nonce} dangerouslySetInnerHTML={{ __html: APP_OR_LANDING }} />
         <script nonce={nonce} dangerouslySetInnerHTML={{ __html: KEEP_INSTALL_PROMPT }} />
       </head>
       <body>{children}</body>

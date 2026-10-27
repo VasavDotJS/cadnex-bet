@@ -197,6 +197,20 @@ input[type='date']::-webkit-calendar-picker-indicator {
 .won-sweep { animation: won-sweep 4s ease-in-out infinite; will-change: transform; }
 @keyframes won-sweep { 0% { transform: translateX(-30%); } 40%, 100% { transform: translateX(130%); } }
 
+/* home URL: the public landing page, or the app (see src/seo/AppMount) */
+html[data-app] .seo-home { display: none; }
+html:not([data-app]) .cdnx-splash { display: none; }
+
+/* guide pages */
+.seo-prose h2 { margin-top: 2.6rem; font-size: 1.6rem; line-height: 1.2; font-weight: 600; letter-spacing: -0.02em; }
+.seo-prose p { margin-top: 1rem; font-size: 1.0625rem; line-height: 1.75; color: rgb(var(--ink) / 0.82); }
+.seo-prose ul, .seo-prose ol { margin-top: 1rem; padding-left: 1.25rem; display: flex; flex-direction: column; gap: 0.6rem; font-size: 1.0625rem; line-height: 1.7; color: rgb(var(--ink) / 0.82); }
+.seo-prose ul { list-style: disc; }
+.seo-prose li::marker { color: rgb(var(--lime)); }
+.seo-prose table { width: 100%; min-width: 460px; border-collapse: collapse; font-size: 0.97rem; }
+.seo-prose th { text-align: left; font-weight: 500; color: rgb(var(--mute)); padding: 0.8rem 1.1rem; }
+.seo-prose td { padding: 0.75rem 1.1rem; border-top: 1px solid rgb(var(--line) / var(--line-a)); }
+
 /* long lists: the browser skips layout and paint for rows far off screen */
 .match-row { content-visibility: auto; contain-intrinsic-size: auto 132px; }
 
